@@ -1,5 +1,5 @@
 FROM centos:8
-LABEL maintainer='Web Stress Testing Image Maintainers <hanxiao2100t@qq.com>'
+LABEL maintainer='Web Stress Testing Image Maintainers <hanxiao2100@qq.com>'
 ENV SRC=/usr/local/src
 ENV PATH=$PATH:/usr/local/siege/bin
 RUN yum -y install bind-utils httpd openssl openssl-devel
