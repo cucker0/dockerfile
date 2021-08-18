@@ -17,7 +17,7 @@ A Web Stress Testing tool.
 
 ### run image
 ```
-docker run --rm -it cucker/webstress:1
+docker run --rm -it cucker/webstress
 ```
 
 ### ab
