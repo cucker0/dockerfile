@@ -1,0 +1,6 @@
+FROM centos:8
+LABEL maintainer='Web Stress Testing Image Maintainers <hanxiao2100@qq.com>'
+ENV PATH=$PATH:/usr/local/siege/bin
+COPY --from=cucker/webstress:2.1 /usr/local/siege /usr/local/siege/
+RUN yum -y install httpd-tools bind-utils
+CMD [ "bash" ]
