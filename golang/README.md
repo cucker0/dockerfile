@@ -17,7 +17,7 @@ docker run -e CGO_ENABLED=1 -e GOARCH=amd64 -e GOCACHE=/go \
   -v /usr/local/src/flannel/dist/qemu-amd64-static:/usr/bin/qemu-amd64-static \
   -v /usr/local/src/flannel:/go/src/github.com/flannel-io/flannel:ro \
   -v /usr/local/src/flannel/dist:/go/src/github.com/flannel-io/flannel/dist \
-  golang:1.15.5 /bin/bash -c '\
+  cucker/golang:latest /bin/bash -c '\
   cd /go/src/github.com/flannel-io/flannel && \
   make -e dist/flanneld && \
   mv dist/flanneld dist/flanneld-amd64'
