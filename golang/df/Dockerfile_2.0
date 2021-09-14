@@ -1,0 +1,16 @@
+FROM centos:8
+LABEL maintainer='Golang Image Maintainers <hanxiao2100@qq.com>'
+RUN yum -y update glibc glibc-devel glibc-headers glibc-common; \
+    yum -y install automake autoconf libtool make gcc gcc-c++ glibc glibc-devel git bison; \
+    yum -y install golang; \
+    yum clean all
+
+# glibc-static
+ENV glibc_dir=/usr/local/src/glibc-2.28
+COPY --from=cucker/golang:1.17.1-glibc-static ${glibc_dir}/libc.a \
+    ${glibc_dir}/libc_pic.a \
+    ${glibc_dir}/nptl/libpthread.a \
+    ${glibc_dir}/dlfcn/libdl.a \
+    /usr/lib64/
+
+CMD [ "bash" ]
