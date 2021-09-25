@@ -13,6 +13,26 @@ from sys import argv
 import re, os
 
 
+def unit_converter(size: int) -> str or int:
+    """存储单位转换
+
+    byte 转换 GB、MB、KB
+
+    :param size:
+    :return:
+    """
+    if size < 0:
+        return 0
+
+    if (size >> 30) > 0:
+        return f"{size >> 30}GB"
+    elif (size >> 20) > 0:
+        return f"{size >> 20}MB"
+    elif (size >> 10) > 0:
+        return f"{size >> 10}KB"
+    else:
+        return size
+
 class MYDOCKER(object):
     def __init__(self):
         super(MYDOCKER, self).__init__()
@@ -331,9 +351,79 @@ class MYDOCKER(object):
 
         ## --rm, Auto Remove
         if self.inspect['HostConfig']['AutoRemove']:
-            self.options["kv"].append(
+            self.options['kv'].append(
                 {"--rm", ""}
             )
+
+
+        ## --workdir, -w
+
+        ## --cpu-shares, -c
+        if self.inspect['HostConfig']['CpuShares'] != 0:
+            self.options['kv'].append(
+                {"-c", self.inspect['HostConfig']['CpuShares']}
+            )
+
+        ## --cpu-period
+        if self.inspect['HostConfig']['CpuPeriod'] != 0:
+            self.options['kv'].append(
+                {"--cpu-period=", self.inspect['HostConfig']['CpuPeriod']}
+            )
+
+        ## --cpu-quota
+        if self.inspect['HostConfig']['CpuQuota'] != 0:
+            self.options['kv'].append(
+                {"--cpu-quota=", self.inspect['HostConfig']['CpuQuota']}
+            )
+
+        ## --cpus
+        if self.inspect['HostConfig']['NanoCpus'] != 0:
+            self.options['kv'].append(
+                {"--cpus", self.inspect['HostConfig']['NanoCpus'] / 10**9}
+            )
+
+        ## --memory, -m
+        if self.inspect['HostConfig']['Memory'] != 0:
+            self.options['kv'].append(
+                {"-m": unit_converter(self.inspect['HostConfig']['Memory'])}
+            )
+
+        ## --blkio-weight
+        if self.inspect['HostConfig']['BlkioWeight'] != 0:
+            self.options['kv'].append(
+                {"--blkio-weight": self.inspect['HostConfig']['BlkioWeight']}
+            )
+
+        ## --device-read-bps
+        if self.inspect['HostConfig']['BlkioDeviceReadBps']:
+            for r in self.inspect['HostConfig']['BlkioDeviceReadBps']:
+                self.options['kv'].append(
+                    {"--device-read-bps": f"{r['Path']}:{unit_converter(r['Rate'])}"}
+                )
+
+        ## --device-write-bps
+        if self.inspect['HostConfig']['BlkioDeviceWriteBps']:
+            for w in self.inspect['HostConfig']['BlkioDeviceWriteBps']:
+                self.options['kv'].append(
+                    {"--device-write-bps": f"{w['Path']}:{unit_converter(w['Rate'])}"}
+                )
+
+        ## --device-read-iops
+        if self.inspect['HostConfig']['BlkioDeviceReadIOps']:
+            for rio in self.inspect['HostConfig']['BlkioDeviceReadIOps']:
+                self.options['kv'].append(
+                    {"--device-read-iops": f"{rio['Path']}:{rio['Rate']}"}
+                )
+
+        ## --device-write-iops
+        if self.inspect['HostConfig']['BlkioDeviceWriteIOps']:
+            for wio in self.inspect['HostConfig']['BlkioDeviceWriteIOps']:
+                self.options['kv'].append(
+                    {"--device-write-iops": f"{wio['Path']}:{wio['Rate']}"}
+                )
+
+        ## --device-write-iops
+
 
 
         # options  --end
