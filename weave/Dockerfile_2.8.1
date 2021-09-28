@@ -1,0 +1,9 @@
+FROM weaveworks/weave:2.8.1
+
+WORKDIR /home/weave
+RUN rm -f /sbin/iptables; \
+    cd /sbin; \
+    ln -s /sbin/xtables-nft-multi /sbin/iptables
+
+ENTRYPOINT ["/home/weave/weaver"]
+CMD ["/bin/sh"]
