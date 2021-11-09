@@ -1,6 +1,9 @@
+# -*- coding: utf-8 -*-
 #!/usr/bin/env python
 #
-"""解析docker 容器的启动参数
+
+"""
+解析docker 容器的启动参数
 
 author: Song yanlin
 mail: hanxiao2100@qq.com
@@ -46,15 +49,47 @@ class MYDOCKER(object):
         # container name or container id. type is str
         self.container = argv[1]
         self.inspect:dict = {}
-        self.docker_run_cmd = "docker run "
+        self.docker_run_cmd = "docker run"
         self.options = {"kv": [], "k": []}
         self.image = None  # str
         self.command = None  # str
         self.args = []
 
     def _print_docker_run_cmd(self):
+        """
+
+        Usage:  docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
+
+        :return:
+        """
         if not self.inspect:
             return
+
+        options_key = "-"
+        #  key 型options
+        for k in self.options['k']:
+            options_key += k
+
+        # key-value 型options
+        options_kv = ""
+        d = {"k1": 111, "k2": 222}
+        for kv in self.options['kv']:
+            _k = list(kv.keys())[0]
+            if _k.endswith('='):
+                options_kv += f"{_k}{kv[_k]} "
+            else:
+                options_kv += f"{_k} {kv[_k]} "
+
+        options = f"{options_key} {options_kv}"
+
+        if self.args:
+            _args = ""
+            for i in self.args:
+                _args += i
+            self.command = f"{self.docker_run_cmd} {options} {self.image} {_args}"
+        else:
+            self.command = f"{self.docker_run_cmd} {options} {self.image}"
+        print(self.command);
 
     def _get_inspect_container(self):
 
@@ -293,13 +328,13 @@ class MYDOCKER(object):
         self.options['k'].append("d")
 
         ## tty and stdin
-        if self.inspect['Congif']['Tty']:
+        if self.inspect['Config']['Tty']:
             self.options['k'].append("t")
         if self.inspect['Config']['OpenStdin']:
             self.options['k'].append("i")
 
         ## --attach
-        if self.inspect['Congif']['AttachStdin'] and self.inspect['Congif']['AttachStdout'] and self.inspect['Congif']['AttachStderr']:
+        if self.inspect['Config']['AttachStdin'] and self.inspect['Config']['AttachStdout'] and self.inspect['Config']['AttachStderr']:
             self.options['k'].append("a")
 
         ## --name
@@ -330,6 +365,19 @@ class MYDOCKER(object):
                     self.options['kv'].append(
                         {"-v": f"{mount['Source']}:{mount['Destination']}:ro"}
                     )
+
+        ## --volumes-from, 挂载指定容器的数据卷
+        '''
+        "VolumesFrom": [
+                "web_data:rw",
+                "nginx-2:Z"
+            ]
+        '''
+        if self.inspect['HostConfig']['VolumesFrom']:
+            for volu in self.inspect['HostConfig']['VolumesFrom']:
+                self.options['kv'].append(
+                    {"--volumes-from": volu}
+                )
 
         ## --publish, -p
         if self.inspect['HostConfig']['PortBindings']:
@@ -364,9 +412,6 @@ class MYDOCKER(object):
             self.options['kv'].append(
                 {"--rm", ""}
             )
-
-
-        ## --workdir, -w
 
         ## --cpu-shares, -c
         if self.inspect['HostConfig']['CpuShares'] != 0:
@@ -465,14 +510,15 @@ class MYDOCKER(object):
             # if len(self.inspect['Config']['Cmd']) > 1:
             #     _args = self.inspect['Config']['Cmd'][1:]
 
-    def help_msg(self):
+    @staticmethod
+    def help_msg():
         _MSG = """Usage:
 # Command alias
-echo "alias image2df='docker run -v /var/run/docker.sock:/var/run/docker.sock --rm cucker/image2df'" >> ~/.bashrc
+echo "alias get_run_command='docker run -v /var/run/docker.sock:/var/run/docker.sock --rm cucker/get_container_run_command'" >> ~/.bashrc
 . ~/.bashrc
 
 # Excute command
-image2df <CONTAINER>
+get_run_command <CONTAINER>
 """
         print(_MSG)
 
@@ -482,8 +528,9 @@ image2df <CONTAINER>
         self._print_docker_run_cmd()
 
 if __name__ == '__main__':
-    mydocker = MYDOCKER()
     if len(argv) < 2 or argv[1] == "--help":
-        mydocker.help_msg()
+        MYDOCKER.help_msg()
         exit(1)
+
+    mydocker = MYDOCKER()
     ret = mydocker.start()

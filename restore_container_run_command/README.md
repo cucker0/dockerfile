@@ -1,8 +1,9 @@
-# get_containers_run_parameters
+# get_container_run_command
 
 
 ## What's this
-Resolve the run parameters of the container
+Resolve the run command of a container.
+include docker run options and arguments.
 
 ## Supported tags and respective `Dockerfile` links
 
