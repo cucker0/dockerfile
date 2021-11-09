@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
-"""
+"""解析docker 容器的启动参数
+
 author: Song yanlin
 mail: hanxiao2100@qq.com
 date: 2021-09-24
@@ -21,7 +22,7 @@ def unit_converter(size: int) -> str or int:
     :param size:
     :return:
     """
-    if size < 0:
+    if size <= 0:
         return 0
 
     if (size >> 30) > 0:
@@ -268,6 +269,15 @@ class MYDOCKER(object):
         except APIError as e:
             print(e)
 
+    def _get_container_name_by_id(self, container_id):
+        """通过容器ID查询容器名
+
+        :param container_id:
+        :return:
+        """
+        inspect = self.api_client.inspect_container(container_id)
+        return inspect['Name'].replace("/", "")
+
     def _parse_inspect_container(self):
         if not self.inspect:
             return
@@ -295,10 +305,10 @@ class MYDOCKER(object):
         ## --name
         if "Name" in self.inspect:
             self.options['kv'].append(
-                {"--name": self.inspect['name'].replace("/", "")}
+                {"--name": self.inspect['Name'].replace("/", "")}
             )
 
-        ## --restart
+        ## --restart, "no" is default.
         _restart_policy = self.inspect['HostConfig']['RestartPolicy']
         if _restart_policy['Name'] == "on-failure":
             self.options['kv'].append(
@@ -422,9 +432,25 @@ class MYDOCKER(object):
                     {"--device-write-iops": f"{wio['Path']}:{wio['Rate']}"}
                 )
 
-        ## --device-write-iops
-
-
+        ## --net, --network=
+        if self.inspect['HostConfig']['NetworkMode'] != 'default':
+            # joined容器网络（共用容器网络）==
+            '''{
+                "HostConfig": {
+                    "NetworkMode": "container:8c9d8e9a4180f3e28c287202b4638a6ef9d26e639726b4a1140704d1ebab70b2"
+                    ...
+                }
+                ...
+            '''
+            if self.inspect['HostConfig']['NetworkMode'].startswith('container:'):
+                source_container_id = self.inspect['HostConfig']['NetworkMode'].split(':')[1]
+                self.options['kv'].append(
+                    {"--network=", "container:" + self._get_container_name_by_id(source_container_id)}
+                )
+            else:  # 指定网络 ==
+                self.options['kv'].append(
+                    {"--network=", self.inspect['HostConfig']['NetworkMode']}
+                )
 
         # options  --end
 
@@ -451,8 +477,9 @@ image2df <CONTAINER>
         print(_MSG)
 
     def start(self):
-        pass
-
+        self._get_inspect_container()
+        self._parse_inspect_container()
+        self._print_docker_run_cmd()
 
 if __name__ == '__main__':
     mydocker = MYDOCKER()
