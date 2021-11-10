@@ -5,6 +5,8 @@
 """
 解析docker 容器的启动参数
 
+require: python 3
+
 author: Song yanlin
 mail: hanxiao2100@qq.com
 date: 2021-09-24
