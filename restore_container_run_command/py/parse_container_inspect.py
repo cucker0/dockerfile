@@ -49,18 +49,19 @@ class MYDOCKER(object):
         # container name or container id. type is str
         self.container = argv[1]
         self.inspect:dict = {}
-        self.docker_run_cmd = "docker run"
+        self.docker_run_cmd = ""
         self.options = {"kv": [], "k": []}
         self.image = None  # str
-        self.command = None  # str
         self.args = []
+        self.inspect_image:dict = {}
 
     def _print_docker_run_cmd(self):
         """
 
         Usage:  docker run [OPTIONS] IMAGE [COMMAND] [ARG...]
 
-        :return:
+        :return: str
+            运行容器的完整命令
         """
         if not self.inspect:
             return
@@ -80,16 +81,17 @@ class MYDOCKER(object):
             else:
                 options_kv += f"{_k} {kv[_k]} "
 
-        options = f"{options_key} {options_kv}"
+        options = f"{options_key} {options_kv}".strip()
 
         if self.args:
             _args = ""
             for i in self.args:
-                _args += i
-            self.command = f"{self.docker_run_cmd} {options} {self.image} {_args}"
+                _args += f"{i} "
+            _args = _args.strip()
+            self.docker_run_cmd = f"docker run {options} {self.image} {_args}"
         else:
-            self.command = f"{self.docker_run_cmd} {options} {self.image}"
-        print(self.command);
+            self.docker_run_cmd = f"docker run {options} {self.image}"
+        print(self.docker_run_cmd)
 
     def _get_inspect_container(self):
 
@@ -303,21 +305,46 @@ class MYDOCKER(object):
 
         except APIError as e:
             print(e)
+            exit(-1)
+
+    def _get_inspect_image(self):
+        if not self.inspect:
+            self._get_inspect_container()
+
+        # image
+        image = self.inspect['Config']['Image']
+        try:
+            self.inspect_image = self.api_client.inspect_image(image)
+        except Exception as e:
+            print(e)
 
     def _get_container_name_by_id(self, container_id):
         """通过容器ID查询容器名
 
         :param container_id:
-        :return:
+        :return: str
+            容器名
         """
         inspect = self.api_client.inspect_container(container_id)
         return inspect['Name'].replace("/", "")
 
     def _parse_inspect_container(self):
         if not self.inspect:
-            return
+            self._get_inspect_container()
+
+        # image
+        self.image: str = self.inspect['Config']['Image']
+        if self.image.startswith('sha256:'):  # 在本地没有此image的，将直接显示原来的image id
+            self.image = self.image.split(':')[1]
 
         # options  --start
+        # --rm, Automatically remove the container when it exits。
+        # --rm比较特殊，放在options['kv']的第一个。 这里把它当kv类型的option处理。
+        if self.inspect['HostConfig']['AutoRemove']:
+            self.options['kv'].append(
+                {"--rm": ""}
+            )
+
         ## --hostname
         if not self.inspect['Id'].startswith(self.inspect['Config']['Hostname']):
             self.options['kv'].append(
@@ -395,10 +422,28 @@ class MYDOCKER(object):
 
 
         ## --env, -e
-        if self.inspect['Config']['Env']:
-            for e in self.inspect['Config']['Env']:
+        # 在容器inspect['Config']['Env']存在，且在镜像inspect_image['Config']['Env']不存在的元素，则为容器运行时添加的env
+        """
+        "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.19.1",
+                "NJS_VERSION=0.4.2",
+                "PKG_RELEASE=1~buster"
+            ]
+            
+        
+        -- inspect_image
+        "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+                "NGINX_VERSION=1.21.1",
+                "NJS_VERSION=0.6.1",
+                "PKG_RELEASE=1~buster"
+            ]
+        """
+        for env in self.inspect['Config']['Env']:
+            if env not in self.inspect_image['Config']['Env']:
                 self.options['kv'].append(
-                    {"--env": e}
+                    {"--env": env}
                 )
 
         ## --workdir, -w
@@ -480,11 +525,12 @@ class MYDOCKER(object):
         ## --net, --network=
         if self.inspect['HostConfig']['NetworkMode'] != 'default':
             # joined容器网络（共用容器网络）==
-            '''{
+            '''共用容器网络 示例
+            {
                 "HostConfig": {
                     "NetworkMode": "container:8c9d8e9a4180f3e28c287202b4638a6ef9d26e639726b4a1140704d1ebab70b2"
                     ...
-                }
+            }
                 ...
             '''
             if self.inspect['HostConfig']['NetworkMode'].startswith('container:'):
@@ -499,16 +545,13 @@ class MYDOCKER(object):
 
         # options  --end
 
-        # image
-        self.image = self.inspect['Config']['Image']
-
         # command and args
-        if not self.inspect['Config']['Cmd'] == self.inspect['Args']:
-            self.command = self.inspect['Config']['Cmd'][0]
-            if len(self.inspect['Args']) > 0:
-                self.args = self.inspect['Args']
-            # if len(self.inspect['Config']['Cmd']) > 1:
-            #     _args = self.inspect['Config']['Cmd'][1:]
+        # 容器inspect['Config']['Cmd']存在，且在对应的镜像inspect_image['Config']['Cmd']不存在的元素，则为运行容器时添加的command或arg
+        if self.inspect['Config']['Cmd'] and self.inspect_image:
+            for c in self.inspect['Config']['Cmd']:
+                if self.inspect_image['Config']['Cmd'] and (c not in self.inspect_image['Config']['Cmd']):
+                    self.args.append(c)
+
 
     @staticmethod
     def help_msg():
@@ -524,6 +567,7 @@ get_run_command <CONTAINER>
 
     def start(self):
         self._get_inspect_container()
+        self._get_inspect_image()
         self._parse_inspect_container()
         self._print_docker_run_cmd()
 
