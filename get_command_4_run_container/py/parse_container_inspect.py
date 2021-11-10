@@ -75,7 +75,6 @@ class MYDOCKER(object):
 
         # key-value 型options
         options_kv = ""
-        d = {"k1": 111, "k2": 222}
         for kv in self.options['kv']:
             _k = list(kv.keys())[0]
             if _k.endswith('='):
@@ -350,7 +349,7 @@ class MYDOCKER(object):
         ## --hostname
         if not self.inspect['Id'].startswith(self.inspect['Config']['Hostname']):
             self.options['kv'].append(
-                {"--hostname", self.inspect['Config']['Hostname']}
+                {"--hostname": self.inspect['Config']['Hostname']}
             )
 
         ## --detach. Run container in background and print container ID
@@ -457,31 +456,31 @@ class MYDOCKER(object):
         ## --rm, Auto Remove
         if self.inspect['HostConfig']['AutoRemove']:
             self.options['kv'].append(
-                {"--rm", ""}
+                {"--rm": ""}
             )
 
         ## --cpu-shares, -c
         if self.inspect['HostConfig']['CpuShares'] != 0:
             self.options['kv'].append(
-                {"-c", self.inspect['HostConfig']['CpuShares']}
+                {"-c": self.inspect['HostConfig']['CpuShares']}
             )
 
         ## --cpu-period
         if self.inspect['HostConfig']['CpuPeriod'] != 0:
             self.options['kv'].append(
-                {"--cpu-period=", self.inspect['HostConfig']['CpuPeriod']}
+                {"--cpu-period=": self.inspect['HostConfig']['CpuPeriod']}
             )
 
         ## --cpu-quota
         if self.inspect['HostConfig']['CpuQuota'] != 0:
             self.options['kv'].append(
-                {"--cpu-quota=", self.inspect['HostConfig']['CpuQuota']}
+                {"--cpu-quota=": self.inspect['HostConfig']['CpuQuota']}
             )
 
         ## --cpus
         if self.inspect['HostConfig']['NanoCpus'] != 0:
             self.options['kv'].append(
-                {"--cpus", self.inspect['HostConfig']['NanoCpus'] / 10**9}
+                {"--cpus": self.inspect['HostConfig']['NanoCpus'] / 10**9}
             )
 
         ## --memory, -m
@@ -538,11 +537,11 @@ class MYDOCKER(object):
             if self.inspect['HostConfig']['NetworkMode'].startswith('container:'):
                 source_container_id = self.inspect['HostConfig']['NetworkMode'].split(':')[1]
                 self.options['kv'].append(
-                    {"--network=", "container:" + self._get_container_name_by_id(source_container_id)}
+                    {"--network=": "container:" + self._get_container_name_by_id(source_container_id)}
                 )
             else:  # 指定网络 ==
                 self.options['kv'].append(
-                    {"--network=", self.inspect['HostConfig']['NetworkMode']}
+                    {"--network=": self.inspect['HostConfig']['NetworkMode']}
                 )
 
         # options  --end
