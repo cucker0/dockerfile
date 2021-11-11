@@ -346,6 +346,12 @@ class MYDOCKER(object):
                 {"--rm": ""}
             )
 
+        ## --privileged
+        if self.inspect['HostConfig']['Privileged']:
+            self.options['kv'].append(
+                {"--privileged": ""}
+            )
+
         ## --hostname
         if not self.inspect['Id'].startswith(self.inspect['Config']['Hostname']):
             self.options['kv'].append(
@@ -544,15 +550,98 @@ class MYDOCKER(object):
                     {"--network=": self.inspect['HostConfig']['NetworkMode']}
                 )
 
+        ## --entrypoint
+        if self.inspect['Config']['Entrypoint']:  # self.inspect['Config']['Entrypoint'] 为list
+            for ep in self.inspect['Config']['Entrypoint']:
+                if ep not in self.inspect_image['Config']['Entrypoint']:
+                    self.options['kv'].append(
+                        {"--entrypoint": ep}
+                    )
+
+        ## --dns
+        if self.inspect['HostConfig']['Dns']:  # self.inspect['HostConfig']['Dns'] 为list
+            for d in self.inspect['HostConfig']['Dns']:
+                self.options['kv'].append(
+                    {"--dns": d}
+                )
+        ## --dns-option
+        if self.inspect['HostConfig']['DnsOptions']:
+            for d in self.inspect['HostConfig']['DnsOptions']:
+                self.options['kv'].append(
+                    {"--dns-option": d}
+                )
+
+        ## --dns-search
+        if self.inspect['HostConfig']['DnsSearch']:
+            for d in self.inspect['HostConfig']['DnsSearch']:
+                self.options['kv'].append(
+                    {"--dns-search": d}
+                )
+
+
+        ## --domainname
+        if self.inspect['Config']['Domainname']:
+            self.options['kv'].append(
+                {"--domainname": self.inspect['Config']['Domainname']}
+            )
+
+        ## --user , -u
+        if self.inspect['Config']['User']:
+            self.options['kv'].append(
+                {"--user": self.inspect['Config']['User']}
+            )
+
+        ## --add-host
+        if self.inspect['HostConfig']['ExtraHosts']:
+            for h in self.inspect['HostConfig']['ExtraHosts']:
+                self.options['kv'].append(
+                    {"--add-host=": h}
+                )
+
+        ## --volume-driver
+        if self.inspect['HostConfig']['VolumeDriver']:
+            self.options['kv'].append(
+                {"--volume-driver": self.inspect['HostConfig']['VolumeDriver']}
+            )
+
+        ## --uts
+        if self.inspect['HostConfig']['UTSMode']:
+            self.options['kv'].append(
+                {"--uts": self.inspect['HostConfig']['UTSMode']}
+            )
+
+        ## --userns
+        if self.inspect['HostConfig']['UsernsMode']:
+            self.options['kv'].append(
+                {"--uts": self.inspect['HostConfig']['UsernsMode']}
+            )
+
+        ## --shm-size, Size of /dev/shm default is 64MB(67108864 byte).
+        if self.inspect['HostConfig']['ShmSize'] != 67108864:
+            self.options['kv'].append(
+                {"--shm-size": unit_converter(self.inspect['HostConfig']['ShmSize'])}
+            )
+
+        ## --link. 用于连接其它容器。是比较老旧的技术，可以把要通行的几个容器连接到同一个单独的网络 来替代
+        if self.inspect['HostConfig']['Links']:  # self.inspect['HostConfig']['Links'] 为null或[]
+            for i in self.inspect['HostConfig']['Links']:
+                self.options['kv'].append(
+                    {"--add-host=": i}
+                )
+
+        ## --ipc
+        if self.inspect['HostConfig']['IpcMode'] != "private":
+            self.options['kv'].append(
+                {"--ipc":self.inspect['HostConfig']['IpcMode']}
+            )
+
         # options  --end
 
         # command and args
-        # 容器inspect['Config']['Cmd']存在，且在对应的镜像inspect_image['Config']['Cmd']不存在的元素，则为运行容器时添加的command或arg
-        if self.inspect['Config']['Cmd'] and self.inspect_image:
+        # 如果 self.inspect['Config']['Cmd'] 与 self.inspect_image['Config']['Cmd'] 不相同，说明docker run传参数了。
+        if self.inspect['Config']['Cmd'] and (self.inspect['Config']['Cmd'] != self.inspect_image['Config']['Cmd']):
             for c in self.inspect['Config']['Cmd']:
-                if self.inspect_image['Config']['Cmd'] and (c not in self.inspect_image['Config']['Cmd']):
-                    self.args.append(c)
-
+                self.args.append(c)
 
     @staticmethod
     def help_msg():
