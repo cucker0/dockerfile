@@ -45,3 +45,5 @@ get_run_command <CONTAINER>
     # Output results
     docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysq
     ```
+## Project
+[get_command_4_run_container](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container)
