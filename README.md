@@ -7,3 +7,4 @@ Dockerfile projects
 * [nginx](nginx/README.md)
 * [web_stress_testing](web_stress_testing/README.md)
 * [python](python/README.md)
+* [httpd](httpd/README.md)
