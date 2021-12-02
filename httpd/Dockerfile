@@ -15,7 +15,7 @@ RUN echo "deb http://mirrors.aliyun.com/debian/ bullseye main non-free contrib" 
   echo "deb-src http://mirrors.aliyun.com/debian/ bullseye-backports main non-free contrib" >> /etc/apt/sources.list
 
 RUN apt-get update; \
-  apt-get install -y iproute2 net-tools curl dnsutils; \
+  apt-get install -y vim iproute2 net-tools curl dnsutils; \
   apt-get clean
 
 STOPSIGNAL SIGWINCH
