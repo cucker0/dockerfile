@@ -153,9 +153,9 @@ class MYDOCKER(object):
             for i in self.args:
                 _args += f"{i} "
             _args = _args.strip()
-            command = f"docker service creat {options} {self.image} {_args}"
+            command = f"docker service creat {options_key} {options} {self.image} {_args}"
         else:
-            command = f"docker service creat {options} {self.image}"
+            command = f"docker service creat {options_key} {options} {self.image}"
         print(command)
 
 
@@ -213,7 +213,7 @@ class MYDOCKER(object):
         )
 
         # parse options
-        obj = PARSE_OPTIONS(self.inspect, self.options)
+        obj = PARSE_OPTIONS(self.inspect, self.options, self.args)
         for m in get_user_methods_by_class_(obj):
             try:
                 m()
@@ -247,9 +247,10 @@ class PARSE_OPTIONS(object):
     """
     dock = MYDOCKER()
 
-    def __init__(self, inspect: dict, options: dict):
+    def __init__(self, inspect: dict, options: dict, args: list):
         self.inspect = inspect
         self.options = options
+        self.args = args
 
     # --name
     # def name(self):
@@ -347,8 +348,13 @@ class PARSE_OPTIONS(object):
             )
 
     # --env , -e
-
     # --env-file
+    def environment(self):
+        env: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Env']
+        for e in env:
+            self.options['kv'].append(
+                {'-e': e}
+            )
 
     # --workdir, -w
 
@@ -369,6 +375,18 @@ class PARSE_OPTIONS(object):
     # --no-healthcheck
 
     # --secret
+    def secret(self):
+        secrets: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Secrets']
+        for sec in secrets:
+            if sec['File']['UID'] == "0" and sec['File']['GID'] == "0" and sec['File']['Mode'] == 292:
+                v = f"source={sec['SecretName']},target={sec['File']['Name']}"
+            else:
+                v = f"source={sec['SecretName']},target={sec['File']['Name']},uid={sec['File']['UID']}," \
+                    f"gid={sec['File']['GID']},mode={sec['File']['Mode']}"
+
+            self.options['kv'].append(
+                {'--secret': v}
+            )
 
     # --tty , -t
 
@@ -422,7 +440,7 @@ class PARSE_OPTIONS(object):
 
     # --placement-pref
 
-    # -quiet , -q
+    # -quiet, -q
 
     # --read-only
 
@@ -472,6 +490,13 @@ class PARSE_OPTIONS(object):
 
     # --with-registry-auth
 
+
+
+    # Args, docker service create command args
+    def argument(self):
+        li: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Args']
+        for arg in li:
+            self.args.append(arg)
 
 if __name__ == '__main__':
     if len(argv) < 2 or argv[1] == "--help":
