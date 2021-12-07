@@ -59,6 +59,41 @@ def get_user_methods_by_class_(cls) ->list:
 
     return methds
 
+def camel2connector(s: str):
+    """驼峰字符转连接字符格式。
+
+    DriverOpts -> driver-opt
+
+    :param s:
+    :return:
+    """
+    s_list = s.split("")
+    for i in range(len(s_list)):
+        if i != 0 and ('A' <= s_list[i] <= 'Z'):
+            s_list.insert(i, '-')
+        s_list[i] = s_list[i].lower()
+
+    return "".join(s_list)
+
+def list_or_dict_to_ini(o, key: str):
+    """list或dict对象转 initialization file 格式
+
+    :return:
+    """
+    ini = ""
+    if type(o) == list:
+        if o :
+            for i in o:
+                ini += f"{key.lower()}={i},"
+            ini = ini[:-1]  # 去掉最后一个","
+    elif type(o) == dict:
+        ini = f"{key.lower()}="
+        for k in o:
+            ini += f"{k}={o[k]}"
+
+    return ini
+
+
 class MYDOCKER(object):
     def __init__(self):
         super(MYDOCKER, self).__init__()
@@ -75,7 +110,7 @@ class MYDOCKER(object):
         self.options = {"kv": [], "k": []}
         self.image = None  # str
         self.args = []
-        self.entityType = ""  # Options: container, service, stack
+        self.entity_info = {'type': None, 'name': None}  # Options: container, service, stack
 
     def _print_command(self):
         """
@@ -85,6 +120,12 @@ class MYDOCKER(object):
         :return: str
             运行容器的完整命令
         """
+        if self.entity_info['type'] == "stack":
+            print(f"This is a docker stack: {self.entity_info['name']}.")
+            return
+        elif self.entity_info['type'] != "service":
+            return
+
         if not self.inspect:
             return
 
@@ -133,9 +174,10 @@ class MYDOCKER(object):
             except:
                 pass
             if is_stack:
-                self.entityType = "stack"
+                self.entity_info['type'] = "stack"
+                self.entity_info['name'] = self.inspect['Spec']['Labels']['com.docker.stack.namespace']
             else:
-                self.entityType = "service"
+                self.entity_info['type'] = "service"
 
     def _get_inspect(self):
 
@@ -152,16 +194,23 @@ class MYDOCKER(object):
             exit(-1)
 
     def _parse_service_inspect(self):
-        if not self.entityType:
+        if not self.entity_info['type']:
             self.check_entity_type()
 
-        if self.entityType != "service":
+        if self.entity_info['type'] != "service":
             return
         if not self.inspect:
             return
 
         # image
-        self.image: str = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Image'].split(':')[0]
+        self.image: str = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Image'].split('@')[0]
+        if self.image.startswith('sha256:'):
+            self.image = self.image.split(':')[1]
+
+        # name of service
+        self.options['kv'].append(
+            {'--name': self.inspect['Spec']['Name']}
+        )
 
         # parse options
         obj = PARSE_OPTIONS(self.inspect, self.options)
@@ -170,6 +219,10 @@ class MYDOCKER(object):
                 m()
             except:
                 pass
+
+    def get_network_name_by_id(self, network_id: str):
+        return self.api_client.inspect_network(network_id)['Name']
+
 
     @staticmethod
     def help_msg():
@@ -192,32 +245,35 @@ class PARSE_OPTIONS(object):
     """从service inspect信息中解析docker service create命令的options
 
     """
+    dock = MYDOCKER()
 
     def __init__(self, inspect: dict, options: dict):
         self.inspect = inspect
         self.options = options
 
-    ## --name
-    def name(self):
-        self.options['kv'].append({
-            '--name': self.inspect['Spec']['Name']
-        })
+    # --name
+    # def name(self):
+    #     self.options['kv'].append(
+    #         {'--name': self.inspect['Spec']['Name']}
+    #     )
 
-    ## --replicas, Number of tasks
+    # --replicas, Number of tasks
     def replicas(self):
         if "Replicated" in list(self.inspect['Spec']['Mode'].keys()):
-            self.options['kv'].append({
-                '--replicas', self.inspect['Spec']['Mode']['Replicated']['Replicas']
-            })
+            if self.inspect['Spec']['Mode']['Replicated']['Replicas'] !=1:
+                self.options['kv'].append(
+                    {'--replicas': self.inspect['Spec']['Mode']['Replicated']['Replicas']}
+                )
 
     # --mode, options: replicated, global, replicated-job, or global-job. replicated is the default.
+    # --max-concurrent
     def mode(self):
         mode: list = list(self.inspect['Spec']['Mode'].keys())
         # global
         if "Global" in mode:
-            self.options['kv'].append({
-                '--mode': 'global'
-            })
+            self.options['kv'].append(
+                {'--mode': 'global'}
+            )
 
         # replicated-job
         """
@@ -229,18 +285,18 @@ class PARSE_OPTIONS(object):
             },
         """
         if "ReplicatedJob" in mode:
-            self.options['kv'].append({
-                '--mode': 'replicated-job'
-            })
+            self.options['kv'].append(
+                {'--mode': 'replicated-job'}
+            )
             # --max-concurrent
-            if self.inspect['Spec']['Mode']['ReplicatedJob']['MaxConcurrent'] > 1:
+            if self.inspect['Spec']['Mode']['ReplicatedJob']['MaxConcurrent'] != 1:
                 self.options['kv'].append({
                     '--max-concurrent': self.inspect['Spec']['Mode']['ReplicatedJob']['MaxConcurrent']
                 })
-            if self.inspect['Spec']['Mode']['ReplicatedJob']['TotalCompletions'] > 1:
-                self.options['kv'].append({
-                    '--replicas': self.inspect['Spec']['Mode']['ReplicatedJob']['TotalCompletions']
-                })
+            if self.inspect['Spec']['Mode']['ReplicatedJob']['TotalCompletions'] != 1:
+                self.options['kv'].append(
+                    {'--replicas': self.inspect['Spec']['Mode']['ReplicatedJob']['TotalCompletions']}
+                )
         # global-job
         if "GlobalJob" in mode:
             self.options['kv'].append({
@@ -248,10 +304,47 @@ class PARSE_OPTIONS(object):
             })
 
     # --publish, -p
+    def publish(self):
+        ports:list = self.inspect['Spec']['EndpointSpec']['Ports']
+        if ports:
+            for port in ports:
+                if port['PublishMode'] == "ingress":
+                    p = f"{port['PublishedPort']}:{port['TargetPort']}/{port['Protocol']}"
+                else:
+                    p = f"published={port['PublishedPort']},target={port['TargetPort']},protocol={port['Protocol']},mode=host"
+
+                self.options['kv'].append(
+                    {'--publish': p}
+                )
 
     # --mount
+    def mount(self):
+        mounts:list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Mounts']
+        for m in mounts:
+            if "VolumeOptions" in list(m.keys()):
+                v = f"type={m['Type']},volume-driver={m['VolumeOptions']['DriverConfig']['Name']},source={m['Source']},destination={m['Target']}"
+            else:
+                v = f"type={m['Type']},source={m['Source']},destination={m['Target']}"
+            self.options['kv'].append(
+                {'--mount': v}
+            )
 
     # --network
+    def network(self):
+        networks: list = self.inspect['Spec']['TaskTemplate']['Networks']
+        for net in networks:
+            if len(net.keys()) == 1:
+                v = PARSE_OPTIONS.dock.get_network_name_by_id(net['Target'])
+            else:
+                v = f"name={PARSE_OPTIONS.dock.get_network_name_by_id(net['Target'])}"
+                for k in net:
+                    if k == "Target":
+                        continue
+                    v += f",{list_or_dict_to_ini(net[k], k)}"
+
+            self.options['kv'].append(
+                {'--network': v}
+            )
 
     # --env , -e
 
