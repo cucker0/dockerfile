@@ -84,21 +84,26 @@ def list_or_dict_to_ini(o, key: str):
     :return:
     """
     ini = ""
-    if type(o) == list:
-        if o :
-            for i in o:
-                ini += f"{camel2connector(key)}={i},"
-            ini = ini[:-1]  # 去掉最后一个","
-    elif type(o) == dict:
-        ini = f"{camel2connector(key)}="
-        for k in o:
-            ini += f"{k}={o[k]}"
+    try:
+        if type(o) == list:
+            if o :
+                for i in o:
+                    ini += f"{camel2connector(key)}={i},"
+        elif type(o) == dict:
+            _key = f"{camel2connector(key)}="
+            for k in o:
+                ini += f"{_key}={k}={o[k]},"
+        # 去掉最后一个","
+        if ini and ini.endswith(","):
+            ini = ini[:-1]
+    except:
+        pass
 
     return ini
 
 
 class MYDOCKER(object):
-    def __init__(self):
+    def __init__(self, service=None):
         super(MYDOCKER, self).__init__()
         if not os.path.exists("/var/run/docker.sock"):
             self.help_msg()
@@ -107,13 +112,16 @@ class MYDOCKER(object):
         self.api_client = docker.APIClient(base_url='unix://var/run/docker.sock')
 
         # service name or container id. type is str
-        self.service = argv[1]
+        self.service = service
         self.inspect:dict = {}
         self.docker_service_create = ""
         self.options = {"kv": [], "k": []}
         self.image = None  # str
         self.args = []
         self.entity_info = {'type': None, 'name': None}  # Options: container, service, stack
+
+    def get_services(self) -> list:
+        return self.api_client.services()
 
     def _print_command(self):
         """
@@ -142,14 +150,27 @@ class MYDOCKER(object):
 
         # key-value 型options
         options_kv = ""
-        for kv in self.options['kv']:
-            _k = list(kv.keys())[0]
-            if _k.endswith('='):
-                options_kv += f"{_k}{kv[_k]} "
+        is_pretty = len(self.options['kv']) > 2
+        if is_pretty:
+            for dic in self.options['kv']:
+                _k = list(dic.keys())[0]
+                if _k.endswith('='):
+                    options_kv += f" {_k}{dic[_k]} \\\n"
+                else:
+                    options_kv += f" {_k} {dic[_k]} \\\n"
+            if options_key:
+                options = f"{options_key} \\\n {options_kv}".lstrip(" ")
             else:
-                options_kv += f"{_k} {kv[_k]} "
+                options = f"{options_kv}".lstrip(" ")
+        else:
+            for dic in self.options['kv']:
+                _k = list(dic.keys())[0]
+                if _k.endswith('='):
+                    options_kv += f"{_k}{dic[_k]} "
+                else:
+                    options_kv += f"{_k} {dic[_k]} "
 
-        options = f"{options_key} {options_kv}".strip()
+            options = f"{options_key} {options_kv}".strip()
 
         command = ""
         if self.args:
@@ -157,9 +178,9 @@ class MYDOCKER(object):
             for i in self.args:
                 _args += f"{i} "
             _args = _args.strip()
-            command = f"docker service creat {options_key} {options} {self.image} {_args}"
+            command = f"docker service creat {options} {self.image} {_args}"
         else:
-            command = f"docker service creat {options_key} {options} {self.image}"
+            command = f"docker service creat {options} {self.image}"
         print(command)
 
 
@@ -324,15 +345,34 @@ class PARSE_OPTIONS(object):
 
     # --mount
     def mount(self):
-        mounts:list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Mounts']
+        mounts: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Mounts']
         for m in mounts:
-            if "VolumeOptions" in list(m.keys()):
-                v = f"type={m['Type']},volume-driver={m['VolumeOptions']['DriverConfig']['Name']},source={m['Source']},destination={m['Target']}"
-            else:
-                v = f"type={m['Type']},source={m['Source']},destination={m['Target']}"
-            self.options['kv'].append(
-                {'--mount': v}
-            )
+            try:
+                readonly = ""
+                keys_m = list(m.keys())
+                if "ReadOnly" in keys_m:
+                    readonly = f",readonly=true"
+                v = ""
+                if "VolumeOptions" in keys_m:
+                    if "DriverConfig" in list(m['VolumeOptions'].keys()) and m['VolumeOptions']['DriverConfig']:
+                        v = f"type={m['Type']}{readonly},volume-driver={m['VolumeOptions']['DriverConfig']['Name']},source={m['Source']},destination={m['Target']}"
+                    elif "Labels" in list(m['VolumeOptions'].keys()):
+                        labels: dict = m['VolumeOptions']['Labels']
+                        lab = ""
+                        for _k in labels:
+                            lab += f'volume-label="{_k}={labels[_k]}",'
+                        if lab.endswith(","):
+                            lab = lab[:-1]
+                        v = f"type={m['Type']}{readonly},source={m['Source']},destination={m['Target']},{lab}"
+                else:
+                    v = f"type={m['Type']}{readonly},source={m['Source']},destination={m['Target']}"
+
+                if v:
+                    self.options['kv'].append(
+                        {'--mount': v}
+                    )
+            except:
+                pass
 
     # --network
     def network(self):
@@ -387,13 +427,13 @@ class PARSE_OPTIONS(object):
     # --health-start-period
     # --health-timeout
     # --no-healthcheck
-    def health_cmd(self):
+    def health_check(self):
         hc: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Healthcheck']
         # --health-cmd
         try:
             if hc['Test'][0] == "CMD-SHELL":
                 self.options['kv'].append(
-                    {'--health-cmd': hc['Test'][1]}
+                    {'--health-cmd': f'"{hc["Test"][1]}"'}
                 )
             # --no-healthcheck
             elif hc['Test'][0] == "NONE":
@@ -463,12 +503,26 @@ class PARSE_OPTIONS(object):
     # --detach , -d
 
     # --dns
-
     # --dns-option
-
-    # --dns-option
-
     # --dns-search
+    def dns_config(self):
+        dnsconfig: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['DNSConfig']
+        if not dnsconfig:
+            return
+
+        ## --dns
+        if "Nameservers" in dnsconfig.keys():
+            for ns in dnsconfig['Nameservers']:
+                self.options['kv'].append(
+                    {'--dns': f'"{ns}"'}
+                )
+        ## --dns-search
+        if "Search" in dnsconfig.keys():
+            for s in dnsconfig['Search']:
+                self.options['kv'].append(
+                    {'--dns-search': s}
+                )
+
 
     # --endpoint-mode, default is vip (vip or dnsrr)
     def endpoint_mode(self):
@@ -479,6 +533,17 @@ class PARSE_OPTIONS(object):
 
 
     # --entrypoint
+    def entrypoint(self):
+        containerSpec: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']
+        if "Command" in list(containerSpec.keys()):
+            c = ""
+            for i in containerSpec['Command']:
+                c += f"{i} "
+            if c:
+                c = c[:-1]
+            self.options['kv'].append(
+                {'--entrypoint': f'"{c}"'}
+            )
 
     # --generic-resource
 
@@ -506,7 +571,7 @@ class PARSE_OPTIONS(object):
         if labels:
             for k in labels:
                 self.options['kv'].append(
-                    {'--label', f"{k}={labels[k]}"}
+                    {'--label': f"{k}={labels[k]}"}
                 )
 
     # --limit-cpu
@@ -524,25 +589,65 @@ class PARSE_OPTIONS(object):
     # --no-resolve-image
 
     # --placement-pref
+    def placement_pref(self):
+        preferences: list = self.inspect['Spec']['TaskTemplate']['Placement']['Preferences']
+
+        for p in preferences:
+            v = ""
+            for k in p:
+                # p[k] 的第一个kv对应的key
+                pk = list(p[k].keys())[0]
+                v += f"{camel2connector(k)}={p[k][pk]},"
+            if v.endswith(","):
+                v = v[:-1]
+            if not v:
+                continue
+
+            self.options['kv'].append(
+                {'--placement-pref': f'"{v}"'}
+            )
+
 
     # -quiet, -q
 
     # --read-only
 
     # --replicas-max-per-node, Maximum number of tasks per node (default 0 = unlimited)
+    def replicas_max_per_node(self):
+        if self.inspect['Spec']['TaskTemplate']['Placement']['MaxReplicas']:
+            self.options['kv'].append(
+                {'--replicas-max-per-node': self.inspect['Spec']['TaskTemplate']['Placement']['MaxReplicas']}
+            )
+
 
     # --reserve-cpu
 
     # --reserve-memory
 
     # --restart-condition, Restart when condition is met ("none"|"on-failure"|"any") (default "any")
-
     # --restart-delay, Delay between restart attempts (ns|us|ms|s|m|h) (default 5s)
-
     # --restart-max-attempts, Maximum number of restarts before giving up
+    def restart_policy(self):
+        rp: dict = self.inspect['Spec']['TaskTemplate']['RestartPolicy']
+        ## --restart-condition
+        if rp['Condition'] != "any":
+            self.options['kv'].append(
+                {'--restart-condition': rp['Condition']}
+            )
+
+        ## --restart-delay
+        if rp['Delay'] != 5000000000:
+            self.options['kv'].append(
+                {'--restart-delay': f"{int(rp['Delay'] / 10**9)}s"}
+            )
+
+        ## --restart-max-attempts
+        if rp['MaxAttempts'] != 0:
+            self.options['kv'].append(
+                {'--restart-max-attempts': rp['MaxAttempts']}
+            )
 
     # --rollback-delay, Delay between task rollbacks (ns|us|ms|s|m|h) (default 0s)
-
     # --rollback-failure-action, Action on rollback failure ("pause"|"continue") (default "pause")
     # --rollback-max-failure-ratio
     # --rollback-monitor, Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h) (default 5s)
@@ -565,7 +670,7 @@ class PARSE_OPTIONS(object):
         ## --rollback-monitor
         if rc['Monitor'] != 5000000000:
             self.options['kv'].append(
-                {'--rollback-monitor': f"{rc['Monitor'] / 10**9}s"}
+                {'--rollback-monitor': f"{int(rc['Monitor'] / 10**9)}s"}
             )
 
         ## --rollback-max-failure-ratio
@@ -580,7 +685,22 @@ class PARSE_OPTIONS(object):
                 {'--rollback-order': rc['Order']}
             )
 
-    # --stop-grace-period
+        ## --rollback-delay
+        try:
+            if rc['Delay']:
+                self.options['kv'].append(
+                    {'--rollback-delay': f"{int(rc['Delay'] / 10 ** 9)}s"}
+                )
+        except:
+            pass
+
+    # --stop-grace-period, Time to wait before force killing a container (ns|us|ms|s|m|h) (default 10s)
+    def stop_grace_period(self):
+        sgp = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['StopGracePeriod']
+        if sgp != 10000000000:
+            self.options['kv'].append(
+                {'--stop-grace-period': f"{int(sgp / 10**6)}ms"}
+            )
 
     # --stop-signal
 
@@ -589,7 +709,6 @@ class PARSE_OPTIONS(object):
     # --ulimit
 
     # --update-delay
-
     # --update-parallelism, Maximum number of tasks updated simultaneously (0 to update all at once)
     # --update-failure-action, Action on update failure ("pause"|"continue"|"rollback") (default "pause")
     # --update-monitor
@@ -612,7 +731,7 @@ class PARSE_OPTIONS(object):
         ## --update-monitor
         if uc['Monitor'] != 5000000000:
             self.options['kv'].append(
-                {'--rollback-monitor': f"{uc['Monitor'] / 10 ** 9}s"}
+                {'--rollback-monitor': f"{int(uc['Monitor'] / 10 ** 9)}s"}
             )
 
         ## --update-max-failure-ratio
@@ -626,6 +745,15 @@ class PARSE_OPTIONS(object):
             self.options['kv'].append(
                 {'--update-order': uc['Order']}
             )
+
+        ## --update-delay
+        try:
+            if uc['Delay']:
+                self.options['kv'].append(
+                    {'--update-delay': f"{int(uc['Delay'] / 10 ** 9)}s"}
+                )
+        except:
+            pass
 
     # -user, -u, Username or UID (format: <name|uid>[:<group|gid>])
 
@@ -644,5 +772,15 @@ if __name__ == '__main__':
         MYDOCKER.help_msg()
         exit(1)
 
-    mydocker = MYDOCKER()
-    ret = mydocker.start()
+    # 查看所有service的docker service create命令
+    elif argv[1] == "{all}":
+        for serv in MYDOCKER().get_services():
+            print(f"=== service: {serv['Spec']['Name']} ===")
+            try:
+                MYDOCKER(serv['Spec']['Name']).start()
+            except:
+                pass
+            print("\n")
+    else:
+        mydocker = MYDOCKER(argv[1])
+        ret = mydocker.start()
