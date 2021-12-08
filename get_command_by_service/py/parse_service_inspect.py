@@ -67,13 +67,16 @@ def camel2connector(s: str):
     :param s:
     :return:
     """
-    s_list = s.split("")
+    if len(s) <= 1:
+        return s.lower()
+
+    s_list = list(s)
     for i in range(len(s_list)):
         if i != 0 and ('A' <= s_list[i] <= 'Z'):
+            s_list[i] = s_list[i].lower()
             s_list.insert(i, '-')
-        s_list[i] = s_list[i].lower()
 
-    return "".join(s_list)
+    return "".join(s_list).lower()
 
 def list_or_dict_to_ini(o, key: str):
     """list或dict对象转 initialization file 格式
@@ -84,10 +87,10 @@ def list_or_dict_to_ini(o, key: str):
     if type(o) == list:
         if o :
             for i in o:
-                ini += f"{key.lower()}={i},"
+                ini += f"{camel2connector(key)}={i},"
             ini = ini[:-1]  # 去掉最后一个","
     elif type(o) == dict:
-        ini = f"{key.lower()}="
+        ini = f"{camel2connector(key)}="
         for k in o:
             ini += f"{k}={o[k]}"
 
@@ -357,22 +360,80 @@ class PARSE_OPTIONS(object):
             )
 
     # --workdir, -w
+    def workdir(self):
+        dir: str = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Dir']
+        if dir:
+            self.options['kv'].append(
+                {'--workdir': dir}
+            )
 
     # --constraint
+    def constraint(self):
+        constraints = self.inspect['Spec']['TaskTemplate']['Placement']['Constraints']
+        if not constraints:
+            return
+
+        for c in constraints:
+            self.options['kv'].append(
+                {'--constraint': c}
+            )
 
     # --container-label
 
     # --health-cmd
-
     # --health-interval
-
     # --health-retries
-
     # --health-start-period
-
     # --health-timeout
-
     # --no-healthcheck
+    def health_cmd(self):
+        hc: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Healthcheck']
+        # --health-cmd
+        try:
+            if hc['Test'][0] == "CMD-SHELL":
+                self.options['kv'].append(
+                    {'--health-cmd': hc['Test'][1]}
+                )
+            # --no-healthcheck
+            elif hc['Test'][0] == "NONE":
+                self.options['kv'].append(
+                    {'--no-healthcheck': ""}
+                )
+        except:
+            pass
+
+        # --health-interval
+        try:
+            if hc['Interval']:
+                self.options['kv'].append(
+                   {'--health-interval': f"{int(hc['Interval'] / 10**9)}s"}
+                )
+        except:
+            pass
+
+        # --health-retries
+        try:
+            if hc['Retries']:
+                self.options['kv'].append(
+                    {'--health-retries': hc['Retries']}
+                )
+        except:
+            pass
+
+        # --health-start-period
+        try:
+            if hc['StartPeriod']:
+                self.options['kv'].append(
+                    {'--health-start-period': f"{int(hc['StartPeriod'] / 10**9)}s"}
+                )
+        except:
+            pass
+
+        # --health-timeout
+        if hc['Timeout']:
+            self.options['kv'].append(
+                {'--health-timeout': f"{int(hc['Timeout'] / 10**9)}s"}
+            )
 
     # --secret
     def secret(self):
@@ -389,6 +450,10 @@ class PARSE_OPTIONS(object):
             )
 
     # --tty , -t
+    def tty(self):
+        tty = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['TTY']
+        if tty:
+            self.options['k'].append('t')
 
     # --cap-add
 
