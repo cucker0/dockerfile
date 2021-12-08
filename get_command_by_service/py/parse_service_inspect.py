@@ -133,11 +133,12 @@ class MYDOCKER(object):
             return
 
         options_key = ""
-        if self.options['k']:
-            options_key = "-"
+        # if self.options['k']:
+        #     options_key = "-"
+
         #  key 型options
         for k in self.options['k']:
-            options_key += k
+            options_key += f"{k} "
 
         # key-value 型options
         options_kv = ""
@@ -396,9 +397,7 @@ class PARSE_OPTIONS(object):
                 )
             # --no-healthcheck
             elif hc['Test'][0] == "NONE":
-                self.options['kv'].append(
-                    {'--no-healthcheck': ""}
-                )
+                self.options['k'].append("--no-healthcheck")
         except:
             pass
 
@@ -453,7 +452,7 @@ class PARSE_OPTIONS(object):
     def tty(self):
         tty = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['TTY']
         if tty:
-            self.options['k'].append('t')
+            self.options['k'].append('-t')
 
     # --cap-add
 
@@ -472,6 +471,12 @@ class PARSE_OPTIONS(object):
     # --dns-search
 
     # --endpoint-mode, default is vip (vip or dnsrr)
+    def endpoint_mode(self):
+        if self.inspect['Spec']['EndpointSpec']['Mode'] != "vip":
+            self.options['kv'].append(
+                {'--endpoint-mode': self.inspect['Spec']['EndpointSpec']['Mode']}
+            )
+
 
     # --entrypoint
 
@@ -483,11 +488,26 @@ class PARSE_OPTIONS(object):
 
     # --hostname
 
-    # --init
+    # --init, Use an init inside each service container to forward signals and reap processes
+    def init(self):
+        if self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Init']:
+            self.options['k'].append("--init")
 
     # --isolation
+    def isolation(self):
+        if self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Isolation'] != "default":
+            self.options['kv'].append(
+                {'--isolation': self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Isolation']}
+            )
 
     # --label , -l
+    def label(self):
+        labels = self.inspect['Spec']['Labels']
+        if labels:
+            for k in labels:
+                self.options['kv'].append(
+                    {'--label', f"{k}={labels[k]}"}
+                )
 
     # --limit-cpu
 
@@ -524,14 +544,41 @@ class PARSE_OPTIONS(object):
     # --rollback-delay, Delay between task rollbacks (ns|us|ms|s|m|h) (default 0s)
 
     # --rollback-failure-action, Action on rollback failure ("pause"|"continue") (default "pause")
-
     # --rollback-max-failure-ratio
-
     # --rollback-monitor, Duration after each task rollback to monitor for failure (ns|us|ms|s|m|h) (default 5s)
-
     # --rollback-order, Rollback order ("start-first"|"stop-first") (default "stop-first")
-
     # --rollback-parallelism, Maximum number of tasks rolled back simultaneously (0 to roll back all at once), The default value is 1
+    def rollback_config(self):
+        rc: dict = self.inspect['Spec']['RollbackConfig']
+        ## --rollback-parallelism
+        if rc['Parallelism'] != 1:
+            self.options['kv'].append(
+                {'--rollback-parallelism': rc['Parallelism']}
+            )
+
+        ## --rollback-failure-action
+        if rc['FailureAction'] != "pause":
+            self.options['kv'].append(
+                {'--rollback-failure-action': rc['FailureAction']}
+            )
+
+        ## --rollback-monitor
+        if rc['Monitor'] != 5000000000:
+            self.options['kv'].append(
+                {'--rollback-monitor': f"{rc['Monitor'] / 10**9}s"}
+            )
+
+        ## --rollback-max-failure-ratio
+        if rc['MaxFailureRatio'] != 0:
+            self.options['kv'].append(
+                {'--rollback-max-failure-ratio': rc['MaxFailureRatio']}
+            )
+
+        ## --rollback-order
+        if rc['Order'] != "stop-first":
+            self.options['kv'].append(
+                {'--rollback-order': rc['Order']}
+            )
 
     # --stop-grace-period
 
@@ -543,13 +590,42 @@ class PARSE_OPTIONS(object):
 
     # --update-delay
 
+    # --update-parallelism, Maximum number of tasks updated simultaneously (0 to update all at once)
     # --update-failure-action, Action on update failure ("pause"|"continue"|"rollback") (default "pause")
-
+    # --update-monitor
     # --update-max-failure-ratio, Failure rate to tolerate during an update (default 0)
-
     # --update-order, Update order ("start-first"|"stop-first") (default "stop-first")
+    def update_config(self):
+        uc: dict = self.inspect['Spec']['UpdateConfig']
+        ## --update-parallelism
+        if uc['Parallelism'] != 1:
+            self.options['kv'].append(
+                {'--update-parallelism': uc['Parallelism']}
+            )
 
-    # --update-order, Update order ("start-first"|"stop-first") (default "stop-first")
+        ## --update-failure-action
+        if uc['FailureAction'] != "pause":
+            self.options['kv'].append(
+                {'--update-failure-action': uc['FailureAction']}
+            )
+
+        ## --update-monitor
+        if uc['Monitor'] != 5000000000:
+            self.options['kv'].append(
+                {'--rollback-monitor': f"{uc['Monitor'] / 10 ** 9}s"}
+            )
+
+        ## --update-max-failure-ratio
+        if uc['MaxFailureRatio'] != 0:
+            self.options['kv'].append(
+                {'--update-max-failure-ratio': uc['MaxFailureRatio']}
+            )
+
+        ## --update-order
+        if uc['Order'] != "stop-first":
+            self.options['kv'].append(
+                {'--update-order': uc['Order']}
+            )
 
     # -user, -u, Username or UID (format: <name|uid>[:<group|gid>])
 
