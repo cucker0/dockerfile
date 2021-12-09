@@ -12,11 +12,11 @@ mail: hanxiao2100@qq.com
 date: 2021-12-26
 """
 
-import docker
-from docker.errors import ImageNotFound, APIError
-
+import os
 from sys import argv
-import re, os
+
+import docker
+from docker.errors import APIError
 
 
 def unit_converter(size: int) -> str or int:
@@ -24,7 +24,7 @@ def unit_converter(size: int) -> str or int:
 
     byte 转换 GB、MB、KB
 
-    :param size:
+    :param size: 字节数
     :return:
     """
     if size <= 0:
@@ -75,8 +75,29 @@ def camel2connector(s: str):
         if i != 0 and ('A' <= s_list[i] <= 'Z'):
             s_list[i] = s_list[i].lower()
             s_list.insert(i, '-')
+    ss = "".join(s_list).lower()
+    if ss.endswith("s"):
+        ss = ss[:-1]
 
-    return "".join(s_list).lower()
+    return ss
+
+def file_mode_converter(num: int):
+    """
+
+    十进制mode 转 user:group:other mode
+    0444  <-->  292
+    444 --> 100 100 100(2) --> 292(10)
+
+    :param num: 十进制数字
+    :return: ser:group:other mode
+        格式：0ugo
+    """
+
+    # 数字转二进制字符串
+    user = (num & 0b111000000) >> 6
+    group = (num & 0b111000) >> 3
+    other = num & 0b111
+    return f"0{user}{group}{other}"
 
 def list_or_dict_to_ini(o, key: str):
     """list或dict对象转 initialization file 格式
@@ -90,9 +111,8 @@ def list_or_dict_to_ini(o, key: str):
                 for i in o:
                     ini += f"{camel2connector(key)}={i},"
         elif type(o) == dict:
-            _key = f"{camel2connector(key)}="
             for k in o:
-                ini += f"{_key}={k}={o[k]},"
+                ini += f"{camel2connector(key)}={k}={o[k]},"
         # 去掉最后一个","
         if ini and ini.endswith(","):
             ini = ini[:-1]
@@ -147,6 +167,7 @@ class MYDOCKER(object):
         #  key 型options
         for k in self.options['k']:
             options_key += f"{k} "
+        options_key = options_key.strip(" ")
 
         # key-value 型options
         options_kv = ""
@@ -351,7 +372,10 @@ class PARSE_OPTIONS(object):
                 readonly = ""
                 keys_m = list(m.keys())
                 if "ReadOnly" in keys_m:
-                    readonly = f",readonly=true"
+                    if m['ReadOnly']:
+                        readonly = f",readonly=true"
+                    else:
+                        readonly = f",readonly=false"
                 v = ""
                 if "VolumeOptions" in keys_m:
                     if "DriverConfig" in list(m['VolumeOptions'].keys()) and m['VolumeOptions']['DriverConfig']:
@@ -397,7 +421,7 @@ class PARSE_OPTIONS(object):
         env: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Env']
         for e in env:
             self.options['kv'].append(
-                {'-e': e}
+                {'--env': e}
             )
 
     # --workdir, -w
@@ -478,11 +502,19 @@ class PARSE_OPTIONS(object):
     def secret(self):
         secrets: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Secrets']
         for sec in secrets:
-            if sec['File']['UID'] == "0" and sec['File']['GID'] == "0" and sec['File']['Mode'] == 292:
-                v = f"source={sec['SecretName']},target={sec['File']['Name']}"
+            v = ""
+            if sec['File']['UID'] == "0" and sec['File']['GID'] == "0":
+                if sec['File']['Mode'] == 292:
+                    v = f"source={sec['SecretName']},target={sec['File']['Name']}"
+                else:
+                    v = f"source={sec['SecretName']},target={sec['File']['Name']},mode={file_mode_converter(sec['File']['Mode'])}"
             else:
-                v = f"source={sec['SecretName']},target={sec['File']['Name']},uid={sec['File']['UID']}," \
-                    f"gid={sec['File']['GID']},mode={sec['File']['Mode']}"
+                if sec['File']['Mode'] == 292:
+                    v = f"source={sec['SecretName']},target={sec['File']['Name']},uid={sec['File']['UID']}," \
+                        f"gid={sec['File']['GID']}"
+                else:
+                    v = f"source={sec['SecretName']},target={sec['File']['Name']},uid={sec['File']['UID']}," \
+                        f"gid={sec['File']['GID']},mode={file_mode_converter(sec['File']['Mode'])}"
 
             self.options['kv'].append(
                 {'--secret': v}
@@ -499,6 +531,29 @@ class PARSE_OPTIONS(object):
     # --cap-drop
 
     # --config
+    def config(self):
+        cs: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Configs']
+        for c in cs:
+            v = ""
+            if c['File']['UID'] == "0" and c['File']['GID'] == "0":
+                if c['File']['Mode'] == 292:  # 292  --> mode=0444
+                    if c['ConfigName'] == c['ConfigName']['File']['Name']:
+                        v = c['ConfigName']
+                    else:
+                        v = f"source={c['ConfigName']},target={c['File']['Name']}"
+                else:
+                    v = f"source={c['ConfigName']},target={c['File']['Name']},mode={file_mode_converter(c['File']['Mode'])}"
+                    print(v)
+            else:
+                if c['File']['Mode'] == 292:
+                    v = f"source={c['ConfigName']},target={c['File']['Name']},uid={c['File']['UID']},gid={c['File']['GID']}"
+                else:
+                    v = f"source={c['ConfigName']},target={c['File']['Name']},uid={c['File']['UID']}," \
+                        f"gid={c['File']['GID']},mode={file_mode_converter(c['File']['Mode'])}"
+
+            self.options['kv'].append(
+                {'--config': v}
+            )
 
     # --detach , -d
 
@@ -546,12 +601,38 @@ class PARSE_OPTIONS(object):
             )
 
     # --generic-resource
+    def generic_resource(self):
+        grs: list = self.inspect['Spec']['TaskTemplate']['Resources']['Reservations']['GenericResources']
+        for gr in grs:
+            self.options['kv'].append(
+                {'--generic-resource': f'"{gr["DiscreteResourceSpec"]["Kind"]}={gr["DiscreteResourceSpec"]["Value"]}"'}
+            )
 
-    # --group
+    # --group, 该用户组，要在主机中存在.
+    def group(self):
+        gs: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Groups']
+        for g in gs:
+            self.options['kv'].append(
+                {'--group': g}
+            )
 
-    # --host
+    # --host, Set one or more custom host-to-IP mappings (host:ip)
+    def host(self):
+        hosts = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Hosts']
+        for h in hosts:
+            h_split = h.split(" ")
+            self.options['kv'].append(
+                {'--host': f"{h_split[1]}:{h_split[0]}"}
+            )
 
     # --hostname
+    def hostname(self):
+        if "Hostname" not in list(self.inspect['Spec']['TaskTemplate']['ContainerSpec'].keys()):
+            return
+        self.options['kv'].append(
+            {'--hostname': self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Hostname']}
+        )
+
 
     # --init, Use an init inside each service container to forward signals and reap processes
     def init(self):
@@ -577,6 +658,11 @@ class PARSE_OPTIONS(object):
     # --limit-cpu
 
     # --limit-memory
+    def limit_memory(self):
+        mb: int = self.inspect['Spec']['TaskTemplate']['Resources']['Limits']['MemoryBytes']
+        self.options['kv'].append(
+            {'--limit-memory': unit_converter(mb)}
+        )
 
     # --limit-pids, Limit maximum number of processes (default 0 = unlimited)
 
@@ -611,6 +697,9 @@ class PARSE_OPTIONS(object):
     # -quiet, -q
 
     # --read-only
+    def read_only(self):
+        if "ReadOnly" in list(self.inspect['Spec']['TaskTemplate']['ContainerSpec'].keys()):
+            self.options['k'].append("--read-only")
 
     # --replicas-max-per-node, Maximum number of tasks per node (default 0 = unlimited)
     def replicas_max_per_node(self):
@@ -623,6 +712,11 @@ class PARSE_OPTIONS(object):
     # --reserve-cpu
 
     # --reserve-memory
+    def reserve_memory(self):
+        mb = self.inspect['Spec']['TaskTemplate']['Resources']['Reservations']['MemoryBytes']
+        self.options['kv'].append(
+            {'--reserve-memory': unit_converter(mb)}
+        )
 
     # --restart-condition, Restart when condition is met ("none"|"on-failure"|"any") (default "any")
     # --restart-delay, Delay between restart attempts (ns|us|ms|s|m|h) (default 5s)
@@ -762,7 +856,7 @@ class PARSE_OPTIONS(object):
 
 
     # Args, docker service create command args
-    def argument(self):
+    def arguments(self):
         li: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Args']
         for arg in li:
             self.args.append(arg)
@@ -778,6 +872,14 @@ if __name__ == '__main__':
             print(f"=== service: {serv['Spec']['Name']} ===")
             try:
                 MYDOCKER(serv['Spec']['Name']).start()
+            except:
+                pass
+            print("\n")
+    elif len(argv) > 2:
+        for s in argv[1:]:
+            print(f"=== service: {s} ===")
+            try:
+                MYDOCKER(s).start()
             except:
                 pass
             print("\n")
