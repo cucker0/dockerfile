@@ -131,7 +131,7 @@ class MYDOCKER(object):
         self.client = docker.DockerClient(base_url='unix://var/run/docker.sock')
         self.api_client = docker.APIClient(base_url='unix://var/run/docker.sock')
 
-        # service name or container id. type is str
+        # service name or service id. type is str
         self.service = service
         self.inspect:dict = {}
         self.docker_service_create = ""
@@ -153,9 +153,7 @@ class MYDOCKER(object):
         """
         if self.entity_info['type'] == "stack":
             print(f"This is a docker stack: {self.entity_info['name']}.")
-            return
-        elif self.entity_info['type'] != "service":
-            return
+            print("docker service create command: ")
 
         if not self.inspect:
             return
@@ -203,6 +201,8 @@ class MYDOCKER(object):
                     i = f"'{i}'"
                 elif i.__contains__(" '"):
                     i = f'"{i}"'
+                elif i.__contains__(" "):
+                    i = f'"{i}"'
                 _args += f"{i} "
 
             command = f"docker service creat {options} {self.image} {_args}"
@@ -249,8 +249,8 @@ class MYDOCKER(object):
         if not self.entity_info['type']:
             self.check_entity_type()
 
-        if self.entity_info['type'] != "service":
-            return
+        # if self.entity_info['type'] != "service":
+        #     return
         if not self.inspect:
             return
 
