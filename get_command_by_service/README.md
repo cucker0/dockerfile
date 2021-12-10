@@ -7,8 +7,7 @@ Get the command for `docker service create` from a service.
 include service create options and arguments.
 
 ## Supported tags and respective `Dockerfile` links
-* [`1.1`, `latest`](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container/df/Dockerfile)
-* [`1.0`](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container/df/Dockerfile)
+* [`1.0`, `latest`](https://github.com/cucker0/dockerfile/blob/main/get_command_by_service/df/Dockerfile)
 
 ## How to use this image
 ```bash
