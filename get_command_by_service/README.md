@@ -46,7 +46,6 @@ get_command_service <SERVICE> [SERVICE...]
     === service: too-big2 ===
     docker service creat --name too-big2 --reserve-memory 4GB nginx:alpine
     
-    
     === service: my_web10 ===
     docker service creat --name my_web10 \
      --constraint node.labels.env==prod \
