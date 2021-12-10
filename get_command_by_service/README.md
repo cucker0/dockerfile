@@ -2,9 +2,9 @@
 
 
 ## What's this
-Get the command for run container from a container.
+Get the command for `docker service create` from a service.
 
-include docker run options and arguments.
+include service create options and arguments.
 
 ## Supported tags and respective `Dockerfile` links
 * [`1.1`, `latest`](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container/df/Dockerfile)
@@ -14,21 +14,25 @@ include docker run options and arguments.
 ```bash
 Usage:
 # Command alias
-echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
+echo "alias get_command_service='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_by_service'" >> ~/.bashrc
 . ~/.bashrc
 
 # Excute command
-get_run_command <CONTAINER>
+## For all services
+get_command_service {all}
+
+## For one or more services
+get_command_service <SERVICE> [SERVICE...]
 ```
-<CONTAINER> is `container id` or `container name`
+<SERVICE> is `service id` or `service name`
 
 
 * See help
     ```bash
-    docker run --rm cucker/get_command_4_run_container --help
+    docker run --rm cucker/get_command_by_service --help
     
     # or
-    docker run --rm cucker/get_command_4_run_container
+    docker run --rm cucker/get_command_by_service
     ```
 
 * For example
@@ -38,7 +42,7 @@ get_run_command <CONTAINER>
     docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysql
     
     ## Command alias
-    echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
+    echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_by_service'" >> ~/.bashrc
     . ~/.bashrc
     
     ## Excute command
@@ -47,4 +51,4 @@ get_run_command <CONTAINER>
     docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysql
     ```
 ## Project
-[get_command_4_run_container](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container)
+[get_command_by_service](https://github.com/cucker0/dockerfile/tree/main/get_command_by_service)
