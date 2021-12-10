@@ -37,17 +37,17 @@ get_command_service <SERVICE> [SERVICE...]
 * For example
 
     ```bash
-    ## run a container for mysql
-    docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysql
+    ## create a service for httpd
+    docker service creat --name web1 --health-cmd "curl --fail http://localhost:80/ || exit 1" cucker/httpd
     
     ## Command alias
-    echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_by_service'" >> ~/.bashrc
+    echo "alias get_command_service='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_by_service'" >> ~/.bashrc
     . ~/.bashrc
     
     ## Excute command
-    get_run_command mysql01
+    get_command_service web1
     # Output results
-    docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysql
+    docker service creat --name web1 --health-cmd "curl --fail http://localhost:80/ || exit 1" cucker/httpd:latest
     ```
 ## Project
 [get_command_by_service](https://github.com/cucker0/dockerfile/tree/main/get_command_by_service)
