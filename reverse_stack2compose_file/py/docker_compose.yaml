@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  db:
+    image: mysql:latest
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - mysql_private
+    environment:
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD_FILE: /run/secrets/wordpress_db_password
+    secrets:
+      - db_root_password
+      - wordpress_db_password
+
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:latest
+    volumes:
+      - wordpress_data:/var/www/html
+    ports:
+      - "5600:80"
+    networks:
+      - mysql_private
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD_FILE: /run/secrets/wordpress_db_password
+    secrets:
+      - wordpress_db_password
+
+secrets:
+  db_root_password:
+    file: ./db_root_password.txt
+  wordpress_db_password:
+    file: ./wordpress_db_password.txt
+
+volumes:
+  db_data:
+  wordpress_data:
+
+networks:
+  mysql_private:
