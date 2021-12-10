@@ -195,10 +195,16 @@ class MYDOCKER(object):
 
         command = ""
         if self.args:
+            # _args = " ".join(self.args[0])
             _args = ""
-            for i in self.args:
+            for i in self.args[0]:
+                # sh -c “xxx” 命令中，-c 后的子命令需要引号包裹的情况
+                if i.__contains__(' "'):
+                    i = f"'{i}'"
+                elif i.__contains__(" '"):
+                    i = f'"{i}"'
                 _args += f"{i} "
-            _args = _args.strip()
+
             command = f"docker service creat {options} {self.image} {_args}"
         else:
             command = f"docker service creat {options} {self.image}"
@@ -253,10 +259,10 @@ class MYDOCKER(object):
         if self.image.startswith('sha256:'):
             self.image = self.image.split(':')[1]
 
-        # name of service
-        self.options['kv'].append(
-            {'--name': self.inspect['Spec']['Name']}
-        )
+        # # name of service
+        # self.options['kv'].append(
+        #     {'--name': self.inspect['Spec']['Name']}
+        # )
 
         # parse options
         obj = PARSE_OPTIONS(self.inspect, self.options, self.args)
@@ -278,7 +284,11 @@ echo "alias get_command_service='docker run --rm -v /var/run/docker.sock:/var/ru
 . ~/.bashrc
 
 # Excute command
-get_command_service <SERVICE>
+## For all services
+get_command_service {all}
+
+## For one or more services
+get_command_service <SERVICE> [SERVICE...]
 """
         print(_MSG)
 
@@ -299,10 +309,11 @@ class PARSE_OPTIONS(object):
         self.args = args
 
     # --name
-    # def name(self):
-    #     self.options['kv'].append(
-    #         {'--name': self.inspect['Spec']['Name']}
-    #     )
+    # 方法名前缀为_，可以在dir(类型) 时排前
+    def _name(self):
+        self.options['kv'].append(
+            {'--name': self.inspect['Spec']['Name']}
+        )
 
     # --replicas, Number of tasks
     def replicas(self):
@@ -444,6 +455,12 @@ class PARSE_OPTIONS(object):
             )
 
     # --container-label
+    def container_label(self):
+        labels: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Labels']
+        for k in labels:
+            self.options['kv'].append(
+                {'--container-label': f"{k}={labels[k]}"}
+            )
 
     # --health-cmd
     # --health-interval
@@ -527,8 +544,20 @@ class PARSE_OPTIONS(object):
             self.options['k'].append('-t')
 
     # --cap-add
+    def cap_add(self):
+        caps: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['CapabilityAdd']
+        for cap in caps:
+            self.options['kv'].append(
+                {'--cap-add': cap}
+            )
 
     # --cap-drop
+    def cap_drop(self):
+        caps = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['CapabilityDrop']
+        for cap in caps:
+            self.options['kv'].append(
+                {'--cap-drop': cap}
+            )
 
     # --config
     def config(self):
@@ -565,17 +594,25 @@ class PARSE_OPTIONS(object):
         if not dnsconfig:
             return
 
+        keys = list(dnsconfig.keys())
         ## --dns
-        if "Nameservers" in dnsconfig.keys():
+        if "Nameservers" in keys:
             for ns in dnsconfig['Nameservers']:
                 self.options['kv'].append(
                     {'--dns': f'"{ns}"'}
                 )
         ## --dns-search
-        if "Search" in dnsconfig.keys():
+        if "Search" in keys:
             for s in dnsconfig['Search']:
                 self.options['kv'].append(
                     {'--dns-search': s}
+                )
+
+        ## --dns-option
+        if "Options" in keys:
+            for op in dnsconfig['Options']:
+                self.options['kv'].append(
+                    {'--dns-option': op}
                 )
 
 
@@ -656,23 +693,49 @@ class PARSE_OPTIONS(object):
                 )
 
     # --limit-cpu
-
     # --limit-memory
-    def limit_memory(self):
-        mb: int = self.inspect['Spec']['TaskTemplate']['Resources']['Limits']['MemoryBytes']
-        self.options['kv'].append(
-            {'--limit-memory': unit_converter(mb)}
-        )
-
     # --limit-pids, Limit maximum number of processes (default 0 = unlimited)
+    def resources_limits(self):
+        rl: dict = self.inspect['Spec']['TaskTemplate']['Resources']['Limits']
+        ## --limit-memory
+        keys = list(rl.keys())
+        if "MemoryBytes" in keys:
+            self.options['kv'].append(
+                {'--limit-memory': unit_converter(rl['MemoryBytes'])}
+            )
+        ## --limit-cpu
+        if "NanoCPUs" in keys:
+            self.options['kv'].append(
+                {'--limit-cpu': rl['NanoCPUs'] / 10**9}
+            )
+        ## --limit-pids
+        if "Pids" in keys:
+            self.options['kv'].append(
+                {'--limit-pids': rl['Pids']}
+            )
 
     # --log-driver
-
     # --log-opt
-
-
+    def log_driver(self):
+        logdriver: dict = self.inspect['Spec']['TaskTemplate']['LogDriver']
+        ## --log-driver
+        if "Name" in list(logdriver.keys()):
+            self.options['kv'].append(
+                {'--log-driver': logdriver['Name']}
+            )
+        ## --log-opt
+        if "Options" in list(logdriver.keys()):
+            for k in logdriver['Options']:
+                self.options['kv'].append(
+                    {'--log-opt': f"{k}={logdriver['Options'][k]}"}
+                )
 
     # --no-resolve-image
+    def no_resolve_image(self):
+        image = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Image']
+        if not image.__contains__("sha256:"):
+            self.options['k'].append("--no-resolve-image")
+
 
     # --placement-pref
     def placement_pref(self):
@@ -710,6 +773,11 @@ class PARSE_OPTIONS(object):
 
 
     # --reserve-cpu
+    def reserve_cpu(self):
+        nc = self.inspect['Spec']['TaskTemplate']['Resources']['Reservations']['NanoCPUs']
+        self.options['kv'].append(
+            {'--reserve-cpu': nc / 10**9}
+        )
 
     # --reserve-memory
     def reserve_memory(self):
@@ -797,10 +865,30 @@ class PARSE_OPTIONS(object):
             )
 
     # --stop-signal
+    def stop_signal(self):
+        self.options['kv'].append(
+            {'--stop-signal': self.inspect['Spec']['TaskTemplate']['ContainerSpec']['StopSignal']}
+        )
 
     # --sysctl
+    def sysctl(self):
+        sysctls: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Sysctls']
+        for k in sysctls:
+            self.options['kv'].append(
+                {'--sysctl': f"{k}={sysctls[k]}"}
+            )
 
     # --ulimit
+    def ulimit(self):
+        ulimits: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Ulimits']
+        for u in ulimits:
+            if u['Hard'] != u['Soft']:
+                v = f"{u['Soft']}:{u['Hard']}"
+            else:
+                v = u['Soft']
+            self.options['kv'].append(
+                {'--ulimit': f"{u['Name']}={v}"}
+            )
 
     # --update-delay
     # --update-parallelism, Maximum number of tasks updated simultaneously (0 to update all at once)
@@ -849,7 +937,12 @@ class PARSE_OPTIONS(object):
         except:
             pass
 
-    # -user, -u, Username or UID (format: <name|uid>[:<group|gid>])
+    # --user, -u, Username or UID (format: <name|uid>[:<group|gid>])
+    def user(self):
+        u = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['User']
+        self.options['kv'].append(
+            {'--user': u}
+        )
 
     # --with-registry-auth
 
@@ -858,8 +951,8 @@ class PARSE_OPTIONS(object):
     # Args, docker service create command args
     def arguments(self):
         li: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Args']
-        for arg in li:
-            self.args.append(arg)
+        if li:
+            self.args.append(li)
 
 if __name__ == '__main__':
     if len(argv) < 2 or argv[1] == "--help":
