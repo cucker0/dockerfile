@@ -139,21 +139,40 @@ def version2bin(s: str):
         return (int(s_li[0]) << 14) + (int(s_li[1]) << 7) + int(s_li[2])
     return 0
 
+def key_in_dict(key, dic: dict) -> bool:
+    """判断一个key是否存在于指定的字典中
+
+    :param key:
+    :param dic:
+    :return:
+    """
+    try:
+        return (key in list(dic))
+    except:
+        return False
+
+
 def get_popen_out(cmd: str) -> list:
     li = []
 
     try:
         popen = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        for i in popen.stdout.readlines():
+        lines = popen.stderr.readlines()
+        if not lines:
+            lines = popen.stdout.readlines()
+
+        for i in lines:
             try:
                 line = str(i, 'utf-8').strip()
                 if line:
                     li.append(line)
             except:
                 pass
-    except:
+    except Exception as e:
+        print(e)
         pass
-    return li
+    finally:
+        return li
 
 class MYSTACK(object):
     def __init__(self, stack=None):
@@ -167,13 +186,14 @@ class MYSTACK(object):
         self.compose = {'version': '', 'services': {}}
 
     def get_services_by_stack(self, stack: str) -> list:
-        cmd = "docker stack services mywp --format {{.Name}}"
+        cmd = "docker stack services %s --format {{.Name}}" %(stack)
         return get_popen_out(cmd)
 
     def get_stacks(self) -> list:
         cmd = "docker stack ls --format {{.Name}}"
         return get_popen_out(cmd)
 
+    # 参考 https://docs.docker.com/compose/compose-file/compose-file-v3/、 https://github.com/docker/cli/pull/2073
     def get_compose_version(self):
         versions = [
             {'docker_release': '20.10.0', 'version': '3.9'},
@@ -212,14 +232,23 @@ class MYSTACK(object):
         for service in self.get_services_by_stack(self.stack):
             # 执行docker stack services xx 命令时出错了
             if service.__contains__(" "):
+                print(service)
                 break
 
             info = MYDOCKER(service).get_service_info()
             self.compose['services'][info['name']] = info['data']
+            if key_in_dict("secrets", info['data']):
+                if not key_in_dict("secrets", self.compose):
+                    self.compose['secrets'] = {}
+                if type(info['data']['secrets']) == list:
+                    for i in info['data']['secrets']:
+                        secret = {'file': f"./{i}.txt"}
+                        self.compose['secrets'][i] = secret
 
     def print_command(self):
         if not self.compose['services']:
             print("出错了")
+            return
 
         print("=== compose.yaml ===")
         print(self.get_yaml())
@@ -238,7 +267,7 @@ class MYDOCKER(object):
         self.client = docker.DockerClient(base_url='unix://var/run/docker.sock')
         self.api_client = docker.APIClient(base_url='unix://var/run/docker.sock')
         # service info
-        self.service_info = {'stack': '', 'name': '', 'data': {},'prefix': ''}
+        self.service_info = {'stack': '', 'name': '', 'data': {}, 'prefix': ''}
         # service name or service id. type is str
         self.service = service
         self.inspect:dict = {}
@@ -428,6 +457,18 @@ class PARSE_OPTIONS(object):
         self.args = args
         self.service_info = service_info
 
+    def __remove_prefix(self, label: str):
+        """移除标签中的stack前缀
+
+        :param label: str
+        :return:
+        """
+        len_prefix = len(self.service_info['prefix'])
+        if len_prefix > 0:
+            return label[len_prefix:]
+        else:
+            return label
+
     # --name
     # 方法名前缀为_，可以在dir(类型) 时排前
     def _name(self):
@@ -487,9 +528,11 @@ class PARSE_OPTIONS(object):
     def publish(self):
         ports:list = self.inspect['Spec']['EndpointSpec']['Ports']
         if ports:
+            self.service_info['data']['ports'] = []
             for port in ports:
                 if port['PublishMode'] == "ingress":
                     p = f"{port['PublishedPort']}:{port['TargetPort']}/{port['Protocol']}"
+                    self.service_info['data']['ports'].append(p)
                 else:
                     p = f"published={port['PublishedPort']},target={port['TargetPort']},protocol={port['Protocol']},mode=host"
 
@@ -552,10 +595,14 @@ class PARSE_OPTIONS(object):
     # --env-file
     def environment(self):
         env: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Env']
+        if env:
+            self.service_info['data']['environment'] = {}
         for e in env:
             self.options['kv'].append(
                 {'--env': e}
             )
+            sp = e.split("=")
+            self.service_info['data']['environment'][sp[0]] = sp[1]
 
     # --workdir, -w
     def workdir(self):
@@ -640,24 +687,47 @@ class PARSE_OPTIONS(object):
     # --secret
     def secret(self):
         secrets: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Secrets']
+        if secrets:
+            self.service_info['data']['secrets'] = []
         for sec in secrets:
+            comp = {}
             v = ""
             if sec['File']['UID'] == "0" and sec['File']['GID'] == "0":
                 if sec['File']['Mode'] == 292:
                     v = f"source={sec['SecretName']},target={sec['File']['Name']}"
+                    comp['source'] = sec['SecretName']
+                    comp['target'] = sec['File']['Name']
                 else:
                     v = f"source={sec['SecretName']},target={sec['File']['Name']},mode={file_mode_converter(sec['File']['Mode'])}"
+                    comp['source'] = sec['SecretName']
+                    comp['target'] = sec['File']['Name']
+                    comp['mode'] = file_mode_converter(sec['File']['Mode'])
             else:
                 if sec['File']['Mode'] == 292:
                     v = f"source={sec['SecretName']},target={sec['File']['Name']},uid={sec['File']['UID']}," \
                         f"gid={sec['File']['GID']}"
+                    comp['source'] = sec['SecretName']
+                    comp['target'] = sec['File']['Name']
+                    comp['uid'] = sec['File']['UID']
+                    comp['gid'] = sec['File']['GID']
+
                 else:
                     v = f"source={sec['SecretName']},target={sec['File']['Name']},uid={sec['File']['UID']}," \
                         f"gid={sec['File']['GID']},mode={file_mode_converter(sec['File']['Mode'])}"
+                    comp['source'] = sec['SecretName']
+                    comp['target'] = sec['File']['Name']
+                    comp['uid'] = sec['File']['UID']
+                    comp['gid'] = sec['File']['GID']
+                    comp['mode'] = file_mode_converter(sec['File']['Mode'])
 
             self.options['kv'].append(
                 {'--secret': v}
             )
+            comp['source'] = self.__remove_prefix(comp['source'])
+            if comp['source'] == comp['target'] and sec['File']['Mode'] == 292:
+                self.service_info['data']['secrets'].append(comp['source'])
+            else:
+                self.service_info['data']['secrets'].append(comp)
 
     # --tty , -t
     def tty(self):
