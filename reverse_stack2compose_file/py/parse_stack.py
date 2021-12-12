@@ -17,7 +17,9 @@ from sys import argv
 
 import docker
 from docker.errors import APIError
-
+import subprocess
+import yaml
+import collections
 
 def unit_converter(size: int) -> str or int:
     """存储单位转换
@@ -121,6 +123,111 @@ def list_or_dict_to_ini(o, key: str):
 
     return ini
 
+def version2bin(s: str):
+    """ 3节.分版本号转二进制数字（最多21位）
+
+    每节用7位二进制来表示
+
+    示例：xx.xx.xx，每节占7位
+    :return: num
+        二进制数。默认值为0
+    """
+    if not s:
+        return 0
+    if s.__contains__("."):
+        s_li = s.split(".")
+        return (int(s_li[0]) << 14) + (int(s_li[1]) << 7) + int(s_li[2])
+    return 0
+
+def get_popen_out(cmd: str) -> list:
+    li = []
+
+    try:
+        popen = subprocess.Popen(cmd, shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for i in popen.stdout.readlines():
+            try:
+                line = str(i, 'utf-8').strip()
+                if line:
+                    li.append(line)
+            except:
+                pass
+    except:
+        pass
+    return li
+
+class MYSTACK(object):
+    def __init__(self, stack=None):
+        """
+
+        :param stack: str
+            stack name or ID
+        """
+        self.client = docker.DockerClient(base_url='unix://var/run/docker.sock')
+        self.stack = stack
+        self.compose = {'version': '', 'services': {}}
+
+    def get_services_by_stack(self, stack: str) -> list:
+        cmd = "docker stack services mywp --format {{.Name}}"
+        return get_popen_out(cmd)
+
+    def get_stacks(self) -> list:
+        cmd = "docker stack ls --format {{.Name}}"
+        return get_popen_out(cmd)
+
+    def get_compose_version(self):
+        versions = [
+            {'docker_release': '20.10.0', 'version': '3.9'},
+            {'docker_release': '19.03.0', 'version': '3.8'},
+            {'docker_release': '18.06.0', 'version': '3.7'},
+            {'docker_release': '18.02.0', 'version': '3.6'},
+            {'docker_release': '17.12.0', 'version': '3.5'},
+            {'docker_release': '17.09.0', 'version': '3.4'},
+            {'docker_release': '17.06.0', 'version': '3.3'},
+            {'docker_release': '17.04.0', 'version': '3.2'},
+            {'docker_release': '1.13.1', 'version': '3.1'},
+            {'docker_release': '1.13.0', 'version': '3.0'},
+            {'docker_release': '1.13.0', 'version': '2.2'},
+            {'docker_release': '1.12.0', 'version': '2.1'},
+            {'docker_release': '1.10.0', 'version': '2.0'},
+        ]
+        version_info = self.client.version()
+        ver = version_info['Components'][0]['Version']
+        for v in versions:
+            if version2bin(ver) >= version2bin(v['docker_release']):
+                self.compose['version'] = v['version']
+                return
+
+    def get_yaml(self) -> str:
+        return yaml.dump(self.compose, sort_keys=False)
+
+
+    def generate_compose_dict(self):
+        if not self.stack:
+            return
+
+        # check version
+        self.get_compose_version()
+
+        # service
+        for service in self.get_services_by_stack(self.stack):
+            # 执行docker stack services xx 命令时出错了
+            if service.__contains__(" "):
+                break
+
+            info = MYDOCKER(service).get_service_info()
+            self.compose['services'][info['name']] = info['data']
+
+    def print_command(self):
+        if not self.compose['services']:
+            print("出错了")
+
+        print("=== compose.yaml ===")
+        print(self.get_yaml())
+
+    def start(self):
+        self.get_compose_version()
+        self.generate_compose_dict()
+        self.print_command()
 
 class MYDOCKER(object):
     def __init__(self, service=None):
@@ -130,8 +237,9 @@ class MYDOCKER(object):
             exit(1)
         self.client = docker.DockerClient(base_url='unix://var/run/docker.sock')
         self.api_client = docker.APIClient(base_url='unix://var/run/docker.sock')
-
-        # service name or container id. type is str
+        # service info
+        self.service_info = {'stack': '', 'name': '', 'data': {},'prefix': ''}
+        # service name or service id. type is str
         self.service = service
         self.inspect:dict = {}
         self.docker_service_create = ""
@@ -203,6 +311,8 @@ class MYDOCKER(object):
                     i = f"'{i}'"
                 elif i.__contains__(" '"):
                     i = f'"{i}"'
+                elif i.__contains__(" "):
+                    i = f'"{i}"'
                 _args += f"{i} "
 
             command = f"docker service creat {options} {self.image} {_args}"
@@ -228,6 +338,9 @@ class MYDOCKER(object):
             if is_stack:
                 self.entity_info['type'] = "stack"
                 self.entity_info['name'] = self.inspect['Spec']['Labels']['com.docker.stack.namespace']
+                self.service_info['stack'] = self.entity_info['name']
+                self.service_info['prefix'] = f"{self.service_info['stack']}_"
+
             else:
                 self.entity_info['type'] = "service"
 
@@ -249,8 +362,8 @@ class MYDOCKER(object):
         if not self.entity_info['type']:
             self.check_entity_type()
 
-        if self.entity_info['type'] != "service":
-            return
+        # if self.entity_info['type'] != "service":
+        #     return
         if not self.inspect:
             return
 
@@ -258,6 +371,7 @@ class MYDOCKER(object):
         self.image: str = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Image'].split('@')[0]
         if self.image.startswith('sha256:'):
             self.image = self.image.split(':')[1]
+        self.service_info['data']['image'] = self.image
 
         # # name of service
         # self.options['kv'].append(
@@ -265,7 +379,7 @@ class MYDOCKER(object):
         # )
 
         # parse options
-        obj = PARSE_OPTIONS(self.inspect, self.options, self.args)
+        obj = PARSE_OPTIONS(self.inspect, self.options, self.args, self.service_info)
         for m in get_user_methods_by_class_(obj):
             try:
                 m()
@@ -292,10 +406,15 @@ get_command_service <SERVICE> [SERVICE...]
 """
         print(_MSG)
 
+    def get_service_info(self) -> dict:
+        self.start()
+        return self.service_info
+
     def start(self):
         self._get_inspect()
         self._parse_service_inspect()
-        self._print_command()
+        # self._print_command()
+
 
 class PARSE_OPTIONS(object):
     """从service inspect信息中解析docker service create命令的options
@@ -303,10 +422,11 @@ class PARSE_OPTIONS(object):
     """
     dock = MYDOCKER()
 
-    def __init__(self, inspect: dict, options: dict, args: list):
+    def __init__(self, inspect: dict, options: dict, args: list, service_info: dict):
         self.inspect = inspect
         self.options = options
         self.args = args
+        self.service_info = service_info
 
     # --name
     # 方法名前缀为_，可以在dir(类型) 时排前
@@ -314,6 +434,8 @@ class PARSE_OPTIONS(object):
         self.options['kv'].append(
             {'--name': self.inspect['Spec']['Name']}
         )
+
+        self.service_info['name'] = self.inspect['Spec']['Name'].split("_")[1]
 
     # --replicas, Number of tasks
     def replicas(self):
@@ -954,28 +1076,39 @@ class PARSE_OPTIONS(object):
         if li:
             self.args.append(li)
 
-if __name__ == '__main__':
-    if len(argv) < 2 or argv[1] == "--help":
-        MYDOCKER.help_msg()
-        exit(1)
+def main():
+    # if len(argv) < 2 or argv[1] == "--help":
+    #     MYDOCKER.help_msg()
+    #     exit(1)
+    #
+    # # 查看所有service的docker service create命令
+    # elif argv[1] == "{all}":
+    #     for serv in MYDOCKER().get_services():
+    #         print(f"=== service: {serv['Spec']['Name']} ===")
+    #         try:
+    #             MYDOCKER(serv['Spec']['Name']).start()
+    #         except:
+    #             pass
+    #         print("\n")
+    # elif len(argv) > 2:
+    #     for s in argv[1:]:
+    #         print(f"=== service: {s} ===")
+    #         try:
+    #             MYDOCKER(s).start()
+    #         except:
+    #             pass
+    #         print("\n")
+    # else:
+    #     mydocker = MYDOCKER(argv[1])
+    #     ret = mydocker.start()
 
-    # 查看所有service的docker service create命令
-    elif argv[1] == "{all}":
-        for serv in MYDOCKER().get_services():
-            print(f"=== service: {serv['Spec']['Name']} ===")
-            try:
-                MYDOCKER(serv['Spec']['Name']).start()
-            except:
-                pass
-            print("\n")
-    elif len(argv) > 2:
-        for s in argv[1:]:
-            print(f"=== service: {s} ===")
-            try:
-                MYDOCKER(s).start()
-            except:
-                pass
-            print("\n")
-    else:
-        mydocker = MYDOCKER(argv[1])
-        ret = mydocker.start()
+
+    ms = MYSTACK(argv[1])
+    # ret1 = ms.get_stacks()
+    # ret2 = ms.get_services_by_stack("mywp")
+    # print(ret1)
+    # print(ret2)
+    ms.start()
+
+if __name__ == '__main__':
+    main()
