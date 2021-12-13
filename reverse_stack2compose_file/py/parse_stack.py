@@ -518,7 +518,6 @@ class PARSE_OPTIONS(object):
                 {'--mode': 'global'}
             )
             key_in_dict("deploy", self.service_info['data'], {})
-
             key_in_dict("mode", self.service_info['data']['deploy'], {})
             self.service_info['data']['deploy']['mode'] = "global"
         # replicated-job
@@ -529,7 +528,7 @@ class PARSE_OPTIONS(object):
                         "TotalCompletions": 10
                     }
                 },
-            """
+        """
         if "ReplicatedJob" in mode:
             self.options['kv'].append(
                 {'--mode': 'replicated-job'}
@@ -543,20 +542,16 @@ class PARSE_OPTIONS(object):
                 self.options['kv'].append(
                     {'--replicas': self.inspect['Spec']['Mode']['ReplicatedJob']['TotalCompletions']}
                 )
-            if key_in_dict("deploy", self.service_info['data']):
-                self.service_info['data']['deploy'] = {}
-            if key_in_dict("mode", self.service_info['data']['deploy']):
-                self.service_info['data']['deploy']['mode'] = {}
+            key_in_dict("deploy", self.service_info['data'], {})
+            key_in_dict("mode", self.service_info['data']['deploy'], {})
             self.service_info['data']['deploy']['mode'] = "replicated-job"
         # global-job
         if "GlobalJob" in mode:
             self.options['kv'].append({
                 '--mode': 'global-job'
             })
-            if key_in_dict("deploy", self.service_info['data']):
-                self.service_info['data']['deploy'] = {}
-            if key_in_dict("mode", self.service_info['data']['deploy']):
-                self.service_info['data']['deploy']['mode'] = {}
+            key_in_dict("deploy", self.service_info['data'], {})
+            key_in_dict("mode", self.service_info['data']['deploy'], {})
             self.service_info['data']['deploy']['mode'] = "global-job"
 
     # --publish, -p
