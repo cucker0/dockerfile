@@ -139,14 +139,19 @@ def version2bin(s: str):
         return (int(s_li[0]) << 14) + (int(s_li[1]) << 7) + int(s_li[2])
     return 0
 
-def key_in_dict(key, dic: dict) -> bool:
+def key_in_dict(key, dic: dict, val=None) -> bool:
     """判断一个key是否存在于指定的字典中
 
     :param key:
     :param dic:
+    :param val: object
+        当key不存在时，新建的key对应的值
     :return:
     """
     try:
+        if not (val is None):
+            if key not in list(dic):
+                dic[key] = val
         return (key in list(dic))
     except:
         return False
@@ -173,6 +178,21 @@ def get_popen_out(cmd: str) -> list:
         pass
     finally:
         return li
+
+def help_msg():
+    _MSG = """Usage:
+# Command alias
+echo "alias stack2compose='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker cucker/stack2compose'" >> ~/.bashrc
+. ~/.bashrc
+
+# Excute command
+## For all stacks
+stack2compose {all}
+
+## For one or more stacks
+get_command_service <STACK> [STACK...]
+"""
+    print(_MSG)
 
 class MYSTACK(object):
     def __init__(self, stack=None):
@@ -237,6 +257,7 @@ class MYSTACK(object):
 
             info = MYDOCKER(service).get_service_info()
             self.compose['services'][info['name']] = info['data']
+            # secrets
             if key_in_dict("secrets", info['data']):
                 if not key_in_dict("secrets", self.compose):
                     self.compose['secrets'] = {}
@@ -244,13 +265,28 @@ class MYSTACK(object):
                     for i in info['data']['secrets']:
                         secret = {'file': f"./{i}.txt"}
                         self.compose['secrets'][i] = secret
+            # volumes
+            if key_in_dict("volumes", info['data']):
+                if not key_in_dict("volumes", self.compose):
+                    self.compose['volumes'] = {}
+                for vol in info['data']['volumes']:
+                    vol_source = vol.split(":")[0]
+                    self.compose['volumes'][vol_source] = {}
+            # networks
+            if key_in_dict("networks", info['data']):
+                if not key_in_dict("networks", self.compose):
+                    self.compose['networks'] = {}
+                if type(info['data']['networks']) == list:
+                    for net in info['data']['networks']:
+                        self.compose['networks'][net] = {}
 
     def print_command(self):
         if not self.compose['services']:
             print("出错了")
             return
 
-        print("=== compose.yaml ===")
+        print("--- compose.yaml ---")
+        print(f"# docker stack deploy --compose-file ./compose.yaml {self.stack}")
         print(self.get_yaml())
 
     def start(self):
@@ -262,7 +298,7 @@ class MYDOCKER(object):
     def __init__(self, service=None):
         super(MYDOCKER, self).__init__()
         if not os.path.exists("/var/run/docker.sock"):
-            self.help_msg()
+            help_msg()
             exit(1)
         self.client = docker.DockerClient(base_url='unix://var/run/docker.sock')
         self.api_client = docker.APIClient(base_url='unix://var/run/docker.sock')
@@ -418,23 +454,6 @@ class MYDOCKER(object):
     def get_network_name_by_id(self, network_id: str):
         return self.api_client.inspect_network(network_id)['Name']
 
-
-    @staticmethod
-    def help_msg():
-        _MSG = """Usage:
-# Command alias
-echo "alias get_command_service='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_by_service'" >> ~/.bashrc
-. ~/.bashrc
-
-# Excute command
-## For all services
-get_command_service {all}
-
-## For one or more services
-get_command_service <SERVICE> [SERVICE...]
-"""
-        print(_MSG)
-
     def get_service_info(self) -> dict:
         self.start()
         return self.service_info
@@ -491,20 +510,24 @@ class PARSE_OPTIONS(object):
     def mode(self):
         mode: list = list(self.inspect['Spec']['Mode'].keys())
         # global
+
         if "Global" in mode:
             self.options['kv'].append(
                 {'--mode': 'global'}
             )
+            key_in_dict("deploy", self.service_info['data'], {})
 
+            key_in_dict("mode", self.service_info['data']['deploy'], {})
+            self.service_info['data']['deploy']['mode'] = "global"
         # replicated-job
         """
-            "Mode": {
-                "ReplicatedJob": {
-                    "MaxConcurrent": 2,
-                    "TotalCompletions": 10
-                }
-            },
-        """
+                "Mode": {
+                    "ReplicatedJob": {
+                        "MaxConcurrent": 2,
+                        "TotalCompletions": 10
+                    }
+                },
+            """
         if "ReplicatedJob" in mode:
             self.options['kv'].append(
                 {'--mode': 'replicated-job'}
@@ -518,11 +541,21 @@ class PARSE_OPTIONS(object):
                 self.options['kv'].append(
                     {'--replicas': self.inspect['Spec']['Mode']['ReplicatedJob']['TotalCompletions']}
                 )
+            if key_in_dict("deploy", self.service_info['data']):
+                self.service_info['data']['deploy'] = {}
+            if key_in_dict("mode", self.service_info['data']['deploy']):
+                self.service_info['data']['deploy']['mode'] = {}
+            self.service_info['data']['deploy']['mode'] = "replicated-job"
         # global-job
         if "GlobalJob" in mode:
             self.options['kv'].append({
                 '--mode': 'global-job'
             })
+            if key_in_dict("deploy", self.service_info['data']):
+                self.service_info['data']['deploy'] = {}
+            if key_in_dict("mode", self.service_info['data']['deploy']):
+                self.service_info['data']['deploy']['mode'] = {}
+            self.service_info['data']['deploy']['mode'] = "global-job"
 
     # --publish, -p
     def publish(self):
@@ -633,10 +666,17 @@ class PARSE_OPTIONS(object):
         if not constraints:
             return
 
+        key_in_dict("deploy", self.service_info['data'], {})
+        key_in_dict("placement", self.service_info['data']['deploy'], {})
+        cs = []
         for c in constraints:
             self.options['kv'].append(
                 {'--constraint': c}
             )
+            cs.append(c)
+        if cs:
+            self.service_info['data']['deploy']['placement']['constraints'] = cs
+
 
     # --container-label
     def container_label(self):
@@ -1160,40 +1200,33 @@ class PARSE_OPTIONS(object):
         li: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Args']
         if li:
             self.args.append(li)
+            self.service_info['data']['command'] = " ".join(li)
 
 def main():
-    # if len(argv) < 2 or argv[1] == "--help":
-    #     MYDOCKER.help_msg()
-    #     exit(1)
-    #
-    # # 查看所有service的docker service create命令
-    # elif argv[1] == "{all}":
-    #     for serv in MYDOCKER().get_services():
-    #         print(f"=== service: {serv['Spec']['Name']} ===")
-    #         try:
-    #             MYDOCKER(serv['Spec']['Name']).start()
-    #         except:
-    #             pass
-    #         print("\n")
-    # elif len(argv) > 2:
-    #     for s in argv[1:]:
-    #         print(f"=== service: {s} ===")
-    #         try:
-    #             MYDOCKER(s).start()
-    #         except:
-    #             pass
-    #         print("\n")
-    # else:
-    #     mydocker = MYDOCKER(argv[1])
-    #     ret = mydocker.start()
+    if len(argv) < 2 or argv[1] == "--help":
+        help_msg()
+        exit(1)
 
+    # 查看所有service的docker service create命令
+    elif argv[1] == "{all}":
+        for stack in MYSTACK().get_stacks():
+            print(f"=== stack: {stack} ===")
+            try:
+                MYSTACK(stack).start()
+            except:
+                pass
+            print("\n")
+    elif len(argv) > 2:
+        for s in argv[1:]:
+            print(f"=== stack: {s} ===")
+            try:
+                MYSTACK(s).start()
+            except:
+                pass
+            print("\n")
+    else:
+        MYSTACK(argv[1]).start()
 
-    ms = MYSTACK(argv[1])
-    # ret1 = ms.get_stacks()
-    # ret2 = ms.get_services_by_stack("mywp")
-    # print(ret1)
-    # print(ret2)
-    ms.start()
 
 if __name__ == '__main__':
     main()
