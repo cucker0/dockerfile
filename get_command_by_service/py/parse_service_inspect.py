@@ -153,6 +153,7 @@ class MYDOCKER(object):
         """
         if self.entity_info['type'] == "stack":
             print(f"This is a docker stack: {self.entity_info['name']}.")
+            print("Reverse stack to a compose file reference `https://hub.docker.com/repository/docker/cucker/stack2compose`")
             print("docker service create command: ")
 
         if not self.inspect:
@@ -367,7 +368,10 @@ class PARSE_OPTIONS(object):
         if ports:
             for port in ports:
                 if port['PublishMode'] == "ingress":
-                    p = f"{port['PublishedPort']}:{port['TargetPort']}/{port['Protocol']}"
+                    if port['Protocol'] == "tcp":
+                        p = f"{port['PublishedPort']}:{port['TargetPort']}"
+                    else:
+                        p = f"{port['PublishedPort']}:{port['TargetPort']}/{port['Protocol']}"
                 else:
                     p = f"published={port['PublishedPort']},target={port['TargetPort']},protocol={port['Protocol']},mode=host"
 
