@@ -504,6 +504,8 @@ class PARSE_OPTIONS(object):
                 self.options['kv'].append(
                     {'--replicas': self.inspect['Spec']['Mode']['Replicated']['Replicas']}
                 )
+                key_in_dict("deploy", self.service_info['data'], {})
+                self.service_info['data']['deploy']['replicas'] = self.inspect['Spec']['Mode']['Replicated']['Replicas']
 
     # --mode, options: replicated, global, replicated-job, or global-job. replicated is the default.
     # --max-concurrent
