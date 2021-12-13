@@ -531,18 +531,24 @@ class PARSE_OPTIONS(object):
             self.service_info['data']['ports'] = []
             for port in ports:
                 if port['PublishMode'] == "ingress":
-                    p = f"{port['PublishedPort']}:{port['TargetPort']}/{port['Protocol']}"
-                    self.service_info['data']['ports'].append(p)
+                    if port['Protocol'] == "tcp":
+                        p = f"{port['PublishedPort']}:{port['TargetPort']}"
+                    else:
+                        p = f"{port['PublishedPort']}:{port['TargetPort']}/{port['Protocol']}"
                 else:
                     p = f"published={port['PublishedPort']},target={port['TargetPort']},protocol={port['Protocol']},mode=host"
 
                 self.options['kv'].append(
                     {'--publish': p}
                 )
+                self.service_info['data']['ports'].append(p)
 
     # --mount
     def mount(self):
         mounts: list = self.inspect['Spec']['TaskTemplate']['ContainerSpec']['Mounts']
+        if not mounts:
+            return
+        volumes = []
         for m in mounts:
             try:
                 readonly = ""
@@ -571,12 +577,18 @@ class PARSE_OPTIONS(object):
                     self.options['kv'].append(
                         {'--mount': v}
                     )
+                volumes.append(f"{m['Source']}:{m['Target']}")
             except:
                 pass
+        if volumes:
+            self.service_info['data']['volumes'] = volumes
 
     # --network
     def network(self):
         networks: list = self.inspect['Spec']['TaskTemplate']['Networks']
+        if not networks:
+            return
+        nets = []
         for net in networks:
             if len(net.keys()) == 1:
                 v = PARSE_OPTIONS.dock.get_network_name_by_id(net['Target'])
@@ -590,6 +602,9 @@ class PARSE_OPTIONS(object):
             self.options['kv'].append(
                 {'--network': v}
             )
+            nets.append(self.__remove_prefix(PARSE_OPTIONS.dock.get_network_name_by_id(net['Target'])))
+        if nets:
+            self.service_info['data']['networks'] = nets
 
     # --env , -e
     # --env-file
