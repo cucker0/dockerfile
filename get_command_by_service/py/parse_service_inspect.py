@@ -179,7 +179,7 @@ class MYDOCKER(object):
                 else:
                     options_kv += f" {_k} {dic[_k]} \\\n"
             if options_key:
-                options = f"{options_key} \\\n {options_kv}".lstrip(" ")
+                options = f"{options_key} \\\n {options_kv.lstrip(' ')}"
             else:
                 options = f"{options_kv}".lstrip(" ")
         else:
