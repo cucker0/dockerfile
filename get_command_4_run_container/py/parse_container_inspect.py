@@ -323,7 +323,14 @@ echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/do
 . ~/.bashrc
 
 # Excute command
-get_run_command <CONTAINER>
+## For all runing containers
+get_run_command {allrun}
+
+## For all containers include shutdown
+get_run_command {all}
+
+## For one or more containers
+get_run_command <CONTAINER> [CONTAINER...]
 """
         print(_MSG)
 
