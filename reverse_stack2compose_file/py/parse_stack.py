@@ -1204,7 +1204,7 @@ def main():
         help_msg()
         exit(1)
 
-    # 查看所有service的docker service create命令
+    # 查看所有stack的compose-file
     elif argv[1] == "{all}":
         for stack in MYSTACK().get_stacks():
             print(f"=== stack: {stack} ===")
