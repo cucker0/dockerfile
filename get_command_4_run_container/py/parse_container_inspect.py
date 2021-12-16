@@ -213,7 +213,7 @@ class MYDOCKER(object):
         elif self.entity_info['type'] == "service":
             print(f"This is a docker service: {self.entity_info['name']}.")
             print(
-                "Reverse stack to a compose file reference `https://hub.docker.com/repository/docker/cucker/get_command_by_service`")
+                "Get the command for docker service create by the service reference `https://hub.docker.com/repository/docker/cucker/get_command_by_service`")
             print("docker run command: ")
 
         options_key = ""
@@ -337,6 +337,7 @@ get_run_command <CONTAINER> [CONTAINER...]
     def start(self):
         self._get_inspect_container()
         self._get_inspect_image()
+        self.check_entity_type()
         self._parse_inspect_container()
         self._print_command()
 
