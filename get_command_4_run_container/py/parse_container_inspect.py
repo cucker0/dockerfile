@@ -412,29 +412,45 @@ class PARSE_OPTIONS(object):
             )
 
     # --mount
+    def mount(self):
+        if not self.inspect['Mounts']:
+            return
+        bs = []
+        if self.inspect['HostConfig']['Binds']:
+            for b in self.inspect['HostConfig']['Binds']:
+                bs.append(b.split(":")[0])
+        image_volumes = []
+        if self.inspect['Config']['Volumes']:
+            image_volumes = list(self.inspect['Config']['Volumes'].keys())
+        for m in self.inspect['Mounts']:
+            try:
+                if m['Type'] == "volume":
+                    if m['Source'] in bs:
+                        continue
+                    # 在image定义的 VOLUME
+                    if len(m['Name']) == 64 and (m['Destination'] in image_volumes):
+                        continue
+                    v = f"type=volume,src={m['Source']},dst={m['Target']}"
+                    if key_in_dict("Driver", m):
+                        if m['Driver'] != "local":
+                            v += f",volume-driver={m['Driver']}"
+                    if m['Mode']:
+                        v += f",mode={m['Mode']}"
+
+                    self.options['kv'].append(
+                        {"--mount": v}
+                    )
+            except:
+                pass
+
     # --volume, -v
     def volume(self):
-        for mount in self.inspect['Mounts']:
-            if mount['Type'] == "bind":
-                if mount['RW']:
-                    self.options['kv'].append(
-                        {"-v": f"{mount['Source']}:{mount['Destination']}"}
-                    )
-                else:
-                    self.options['kv'].append(
-                        {"-v": f"{mount['Source']}:{mount['Destination']}:ro"}
-                    )
-            elif mount['Type'] == "volume":
-                if self.inspect['HostConfig']['Binds']:
-                    if f"{mount['Source']}:{mount['Target']}" in self.inspect['HostConfig']['Binds']:
-                        self.options['kv'].append(
-                            {"-v": f"{mount['Source']}:{mount['Target']}"}
-                        )
-                        return
-
-                self.options['kv'].append(
-                    {"--mount": f"type={mount['Type']},src={mount['Source']},dst={mount['Target']}"}
-                )
+        if not self.inspect['HostConfig']['Binds']:
+            return
+        for v in self.inspect['HostConfig']['Binds']:
+            self.options['kv'].append(
+                {'-v': v}
+            )
 
     # --volumes-from, 挂载指定容器的数据卷
     '''
@@ -687,7 +703,7 @@ class PARSE_OPTIONS(object):
 
     # --ipc
     def ipc(self):
-        if self.inspect['HostConfig']['IpcMode'] != "private":
+        if self.inspect['HostConfig']['IpcMode'] and (self.inspect['HostConfig']['IpcMode'] != "private"):
             self.options['kv'].append(
                 {"--ipc": self.inspect['HostConfig']['IpcMode']}
             )
@@ -823,6 +839,35 @@ class PARSE_OPTIONS(object):
             self.options['kv'].append(
                 {'--pid': self.inspect['HostConfig']['PidMode']}
             )
+    # --cap-add
+    def cap_add(self):
+        if self.inspect['HostConfig']['CapAdd']:
+            for c in self.inspect['HostConfig']['CapAdd']:
+                self.options['kv'].append(
+                    {'--cap-add': c}
+                )
+
+
+    # --cap-drop
+    def cap_drop(self):
+        if self.inspect['HostConfig']['CapDrop']:
+            for c in self.inspect['HostConfig']['CapDrop']:
+                self.options['kv'].append(
+                    {'---cap-drop': c}
+                )
+
+    # --ulimit
+    def ulimit(self):
+        ulimits: list = self.inspect['HostConfig']['Ulimits']
+        for u in ulimits:
+            if u['Hard'] != u['Soft']:
+                v = f"{u['Soft']}:{u['Hard']}"
+            else:
+                v = u['Soft']
+            self.options['kv'].append(
+                {'--ulimit': f"{u['Name']}={v}"}
+            )
+
 
     # command and args
     def arguments(self):
