@@ -729,16 +729,20 @@ class PARSE_OPTIONS(object):
         labels: dict = self.inspect['Config']['Labels']
         for k in labels:
             if not key_in_dict(k, self.inspect_image['ContainerConfig']['Labels']):
-                self.options['kv'].append(
-                    {'--label', f"{k}={labels[k]}"}
-                )
-
+                if labels[k]:
+                    self.options['kv'].append(
+                        {'--label': f"{k}={labels[k]}"}
+                    )
+                else:
+                    self.options['kv'].append(
+                        {'--label': f'{k}=""'}
+                    )
 
     # --init
     def init(self):
         if self.inspect['HostConfig']['Init']:  # inspect['HostConfig']['Init'] 为 bool值
             self.options['kv'].append(
-                {'--init', ''}
+                {'--init': ''}
             )
 
 
