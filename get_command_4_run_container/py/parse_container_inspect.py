@@ -424,7 +424,6 @@ class PARSE_OPTIONS(object):
         if self.inspect['Config']['Volumes']:
             image_volumes = list(self.inspect['Config']['Volumes'].keys())
         for m in self.inspect['Mounts']:
-            print(m)
             try:
                 if m['Source'] in bs:
                     continue
