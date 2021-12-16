@@ -424,13 +424,14 @@ class PARSE_OPTIONS(object):
         if self.inspect['Config']['Volumes']:
             image_volumes = list(self.inspect['Config']['Volumes'].keys())
         for m in self.inspect['Mounts']:
+            print(m)
             try:
                 if m['Source'] in bs:
                     continue
                 # 在image定义的 VOLUME
-                if len(m['Name']) == 64 and (m['Destination'] in image_volumes):
+                if key_in_dict("Name", m) and (len(m['Name']) == 64) and (m['Destination'] in image_volumes):
                     continue
-                v = f"type={m['Type']},src={m['Source']},dst={m['Target']}"
+                v = f"type={m['Type']},src={m['Source']},dst={m['Destination']}"
                 if key_in_dict("Driver", m):
                     if m['Driver'] != "local":
                         v += f",volume-driver={m['Driver']}"
@@ -440,7 +441,8 @@ class PARSE_OPTIONS(object):
                 self.options['kv'].append(
                     {"--mount": v}
                     )
-            except:
+            except Exception as e:
+                print(e)
                 pass
 
     # --volume, -v
