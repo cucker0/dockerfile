@@ -425,7 +425,12 @@ class PARSE_OPTIONS(object):
             image_volumes = list(self.inspect['Config']['Volumes'].keys())
         for m in self.inspect['Mounts']:
             try:
-                if m['Source'] in bs:
+                if m['Source'].endswith("/"):
+                    source_m = m['Source'][:-1]
+                else:
+                    source_m = f"{m['Source']}/"
+
+                if (m['Source'] in bs) or (source_m in bs):
                     continue
                 # 在image定义的 VOLUME
                 if key_in_dict("Name", m) and (len(m['Name']) == 64) and (m['Destination'] in image_volumes):
