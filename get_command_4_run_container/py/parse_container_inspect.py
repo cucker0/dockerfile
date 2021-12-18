@@ -620,11 +620,19 @@ class PARSE_OPTIONS(object):
     def entrypoint(self):
         if not self.inspect['Config']['Entrypoint']:  # self.inspect['Config']['Entrypoint'] 为list
             return
-        for ep in self.inspect['Config']['Entrypoint']:
-            if ep not in self.inspect_image['Config']['Entrypoint']:
-                self.options['kv'].append(
-                    {"--entrypoint": ep}
-                )
+        if self.inspect['Config']['Entrypoint'] != self.inspect_image['Config']['Entrypoint']:
+            ep = " ".join(self.inspect['Config']['Entrypoint'])
+            if ep.__contains__(' "'):
+                v = f"'{ep}'"
+            elif ep.__contains__(" '"):
+                v = f'"{ep}"'
+            elif ep.__contains__(" "):
+                v = f'"{ep}"'
+            else:
+                v = ep
+            self.options['kv'].append(
+                {"--entrypoint": v}
+            )
 
     # --dns
     def dns(self):
@@ -735,7 +743,7 @@ class PARSE_OPTIONS(object):
     def label(self):
         labels: dict = self.inspect['Config']['Labels']
         for k in labels:
-            if not key_in_dict(k, self.inspect_image['ContainerConfig']['Labels']):
+            if not key_in_dict(k, self.inspect_image['Config']['Labels']):
                 if labels[k]:
                     self.options['kv'].append(
                         {'--label': f"{k}={labels[k]}"}
@@ -776,7 +784,9 @@ class PARSE_OPTIONS(object):
                 )
             # --no-healthcheck
             elif hc['Test'][0] == "NONE":
-                self.options['k'].append("--no-healthcheck")
+                self.options['kv'].append(
+                    {'--no-healthcheck': ""}
+                )
         except:
             pass
 

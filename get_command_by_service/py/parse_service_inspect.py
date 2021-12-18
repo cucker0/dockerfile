@@ -632,13 +632,17 @@ class PARSE_OPTIONS(object):
     def entrypoint(self):
         containerSpec: dict = self.inspect['Spec']['TaskTemplate']['ContainerSpec']
         if "Command" in list(containerSpec.keys()):
-            c = ""
-            for i in containerSpec['Command']:
-                c += f"{i} "
-            if c:
-                c = c[:-1]
+            ep = " ".join(containerSpec['Command'])
+            if ep.__contains__(' "'):
+                v = f"'{ep}'"
+            elif ep.__contains__(" '"):
+                v = f'"{ep}"'
+            elif ep.__contains__(" "):
+                v = f'"{ep}"'
+            else:
+                v = ep
             self.options['kv'].append(
-                {'--entrypoint': f'"{c}"'}
+                {"--entrypoint": v}
             )
 
     # --generic-resource
