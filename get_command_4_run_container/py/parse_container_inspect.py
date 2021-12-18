@@ -873,7 +873,7 @@ class PARSE_OPTIONS(object):
         if self.inspect['HostConfig']['CapDrop']:
             for c in self.inspect['HostConfig']['CapDrop']:
                 self.options['kv'].append(
-                    {'---cap-drop': c}
+                    {'--cap-drop': c}
                 )
 
     # --ulimit
