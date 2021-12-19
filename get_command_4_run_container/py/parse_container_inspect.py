@@ -259,7 +259,12 @@ class MYDOCKER(object):
                 elif i.__contains__(" '"):
                     i = f'"{i}"'
                 elif i.__contains__(" "):
-                    i = f'"{i}"'
+                    if i.startswith('"') and i.endswith('"'):
+                        pass
+                    elif i.startswith("'") and i.endswith("'"):
+                        pass
+                    else:
+                        i = f'"{i}"'
                 _args += f"{i} "
 
             command = f"docker run {options} {self.image} {_args}"
@@ -888,6 +893,56 @@ class PARSE_OPTIONS(object):
                 {'--ulimit': f"{u['Name']}={v}"}
             )
 
+    # --cgroupns, Cgroup namespace to use (host|private|'')
+    def cgroupns(self):
+        if not self.inspect['HostConfig']['CgroupnsMode']:
+            return
+        if self.inspect['HostConfig']['CgroupnsMode'] != "host":
+            self.options['kv'].append(
+                {'--cgroupns': self.inspect['HostConfig']['CgroupnsMode']}
+            )
+
+    # --cgroup-parent
+    def cgroup_parent(self):
+        v = self.inspect['HostConfig']['CgroupParent']
+        if v:
+            self.options['kv'].append(
+                {'--cgroup-parent': v}
+            )
+
+    # --tmpfs
+    def tmpfs(self):
+        if not key_in_dict("Tmpfs", self.inspect['HostConfig']):
+            return
+        ts: dict = self.inspect['HostConfig']['Tmpfs']
+        for k in ts:
+            self.options['kv'].append(
+                {'--tmpfs': f"{k}:{ts[k]}"}
+            )
+
+    # --cidfile
+    def cidfile(self):
+        v = self.inspect['HostConfig']['ContainerIDFile']
+        if v:
+            self.options['kv'].append(
+                {'--cidfile': v}
+            )
+
+    # --cpu-rt-period, Limit CPU real-time period in microseconds
+    def cpu_rt_period(self):
+        v: int = self.inspect['HostConfig']['CpuRealtimePeriod']
+        if v != 0:
+            self.options['kv'].append(
+                {'--cpu-rt-period': v}
+            )
+
+    # --cpu-rt-runtime, Limit CPU real-time runtime in microseconds
+    def cpu_rt_runtime(self):
+        v: int = self.inspect['HostConfig']['CpuRealtimeRuntime']
+        if v != 0:
+            self.options['kv'].append(
+                {'--cpu-rt-runtime': v}
+            )
 
     # command and args
     def arguments(self):
