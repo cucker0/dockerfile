@@ -60,7 +60,7 @@ def get_user_methods_by_class_(cls) ->list:
     return methds
 
 def camel2connector(s: str):
-    """驼峰字符转连接字符格式。
+    """驼峰字符串转连接字符格式。
 
     DriverOpts -> driver-opt
 
@@ -139,7 +139,7 @@ def key_in_dict(key, dic: dict, val=None) -> bool:
         return False
 
 def remve_prefix(s: str, prefix = "/"):
-    """去掉不字符串指定的前缀
+    """去掉字符串指定的前缀
 
     :param s:
     :param prefix:
