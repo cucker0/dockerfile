@@ -46,3 +46,27 @@ Based on image `ceph/daemon`, fixed some scripts bug.
     use `ceph-volume` instead of `ceph-disk`
     
 * fixed other BLUESTORE bugs
+
+
+
+## Others
+
+*   How to debug `ceph/daemon` 
+
+    ```bash
+    docker run -dit --privileged --restart=always --name osd_test \
+     --net host \
+     --pid=host \
+     -v /etc/ceph:/etc/ceph \
+     -v /var/lib/ceph:/var/lib/ceph \
+     -v /dev/:/dev/ \
+     -v /osd/sdc/:/var/lib/ceph/osd \
+     -e OSD_TYPE=directory \
+     --entrypoint /usr/bin/bash \
+     ceph/daemon read
+     
+     // Enter container
+     docker exec -it osd_test bash
+    ```
+
+    
