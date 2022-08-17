@@ -50,7 +50,7 @@ function osd_directory {
     # /dev/sdc       2146435072 14998304 2131436768   1% /var/lib/ceph/osd
     #
     # BLUESTORE_BLOCK_SIZE unit on Byte
-    BLUESTORE_BLOCK_SIZE=$(expr `df /var/lib/ceph/osd |grep /var/lib/ceph/osd |awk '{print $2}'` \* 1024)
+    BLUESTORE_BLOCK_SIZE=$(expr `df /var/lib/ceph/osd |grep /var/lib/ceph/osd |awk '{print $4}'` \* 1024)
     # init data directory
     ceph-osd --cluster "${CLUSTER}" -i "${OSD_ID}" --mkfs --osd-uuid "${UUID}" --mkjournal --osd-journal "${OSD_J}" --setuser ceph --setgroup ceph --bluestore-block-size ${BLUESTORE_BLOCK_SIZE} --no-mon-config
   fi
