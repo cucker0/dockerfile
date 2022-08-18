@@ -47,6 +47,41 @@ Based on image `ceph/daemon`, fixed some shell scripts bug.
          -e OSD_BLUESTORE=1 \
          cucker/ceph_daemon osd
         ```
+        
+        ```
+        docker run -d --name osd \
+         --restart=always \
+         --net=host \
+         --privileged=true \
+         --pid=host \
+         -v /etc/ceph:/etc/ceph \
+         -v /var/lib/ceph/:/var/lib/ceph/ \
+         -v /dev/:/dev/ \
+         -v /run/udev/:/run/udev/ \
+         -e OSD_DEVICE=/dev/sdb \
+         -e OSD_BLUESTORE_BLOCK_DB=<vg/lv01 or partion_of_disk> \
+         -e OSD_TYPE=disk \
+         -e OSD_BLUESTORE=1 \
+         cucker/ceph_daemon osd
+        ```
+        
+        ```
+        docker run -d --name osd \
+         --restart=always \
+         --net=host \
+         --privileged=true \
+         --pid=host \
+         -v /etc/ceph:/etc/ceph \
+         -v /var/lib/ceph/:/var/lib/ceph/ \
+         -v /dev/:/dev/ \
+         -v /run/udev/:/run/udev/ \
+         -e OSD_DEVICE=/dev/sdb \
+         -e OSD_BLUESTORE_BLOCK_DB=<vg/lv01 or partion_of_disk> \
+         -e OSD_BLUESTORE_BLOCK_WAL=<vg/lv02 or partion_of_disk> \
+         -e OSD_TYPE=disk \
+         -e OSD_BLUESTORE=1 \
+         cucker/ceph_daemon osd
+        ```
 
 ## Fixed bugs
 * when OSD_TYPE=directory or ceph/daemon osd_directory, the OSD size max is 100GiB.
