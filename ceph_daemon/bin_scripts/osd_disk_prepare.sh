@@ -44,10 +44,10 @@ function osd_disk_prepare {
   if [[ ${OSD_BLUESTORE} -eq 1 ]]; then
     CEPH_DISK_CLI_OPTS+=(--bluestore)
     CEPH_DISK_CLI_OPTS+=(--data "${OSD_DEVICE}")
-    if [[ "${OSD_BLUESTORE_BLOCK_WAL}" != "${OSD_DEVICE}" ]]; then
-      CEPH_DISK_CLI_OPTS+=(--block.wal "${OSD_BLUESTORE_BLOCK_WAL}")
+    if [[ -n "${OSD_BLUESTORE_BLOCK_WAL}" && "${OSD_BLUESTORE_BLOCK_WAL}" != "${OSD_DEVICE}" ]]; then    
+       CEPH_DISK_CLI_OPTS+=(--block.wal "${OSD_BLUESTORE_BLOCK_WAL}")
     fi
-    if [[ "${OSD_BLUESTORE_BLOCK_DB}" != "${OSD_DEVICE}" ]]; then
+    if [[ -n "${OSD_BLUESTORE_BLOCK_DB}" && "${OSD_BLUESTORE_BLOCK_DB}" != "${OSD_DEVICE}" ]]; then
       CEPH_DISK_CLI_OPTS+=(--block.db "${OSD_BLUESTORE_BLOCK_DB}")
     fi
     #ceph-disk -v prepare "${CEPH_DISK_CLI_OPTS[@]}" \
@@ -56,6 +56,9 @@ function osd_disk_prepare {
     
     # ceph-disk is Deprecated
     # use ceph-volume instead of ceph-disk. 
+    # ref 
+    # 语法：ceph-volume lvm prepare --bluestore --data <device> --block.wal <wal-device> --block.db <db-device>
+    # --data  可以是使用 vg/lv 表示的逻辑卷。其它设备可以是现有的 逻辑卷 或 GPT分区。如果 --data 为 磁盘设备，则会自动创建 pv,vg,lv
     log "INFO: ceph-volume lvm prepare ${CEPH_DISK_CLI_OPTS[@]}"
     ceph-volume lvm prepare "${CEPH_DISK_CLI_OPTS[@]}"
 
