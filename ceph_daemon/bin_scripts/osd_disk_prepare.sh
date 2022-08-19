@@ -44,10 +44,10 @@ function osd_disk_prepare {
   if [[ ${OSD_BLUESTORE} -eq 1 ]]; then
     CEPH_DISK_CLI_OPTS+=(--bluestore)
     CEPH_DISK_CLI_OPTS+=(--data "${OSD_DEVICE}")
-    if [[ -n "${OSD_BLUESTORE_BLOCK_WAL}" && "${OSD_BLUESTORE_BLOCK_WAL}" != "${OSD_DEVICE}" ]]; then    
+    if [[ -n "${OSD_BLUESTORE_BLOCK_WAL}" && -e "${OSD_BLUESTORE_BLOCK_WAL}" && "${OSD_BLUESTORE_BLOCK_WAL}" != "${OSD_DEVICE}" ]]; then
        CEPH_DISK_CLI_OPTS+=(--block.wal "${OSD_BLUESTORE_BLOCK_WAL}")
     fi
-    if [[ -n "${OSD_BLUESTORE_BLOCK_DB}" && "${OSD_BLUESTORE_BLOCK_DB}" != "${OSD_DEVICE}" ]]; then
+    if [[ -n "${OSD_BLUESTORE_BLOCK_DB}" && -e "${OSD_BLUESTORE_BLOCK_DB}" && "${OSD_BLUESTORE_BLOCK_DB}" != "${OSD_DEVICE}" ]]; then
       CEPH_DISK_CLI_OPTS+=(--block.db "${OSD_BLUESTORE_BLOCK_DB}")
     fi
     #ceph-disk -v prepare "${CEPH_DISK_CLI_OPTS[@]}" \
