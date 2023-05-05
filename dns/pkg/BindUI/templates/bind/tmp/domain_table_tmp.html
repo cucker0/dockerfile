@@ -1,0 +1,102 @@
+{% load MyTemplate %}
+
+                <div class="box-body table-responsive no-padding" style="overflow-x:visible">
+                    <table id="table_domains" class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th class="th-w1-1"><input type="checkbox" data-check-all onclick="SelectAll('#table_domains' )"></th>
+                            <th class="th-w1-2">域名</th>
+                            <th class="th-w1-3">状态</th>
+                            <th class="th-w1-4">操作</th>
+                            <th class="th-w1-5">创建时间</th>
+                            <th class="th-w1-5">最后操作时间</th>
+                            <th class="th-w1-4">备注</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for zone_obj in zone_obj_list %}
+                            <tr>
+                                <td><input type="checkbox" id="{{ zone_obj.id }}"></td>
+                                <td name="zone_name">{{ zone_obj.zone_name }}</td>
+                                <td>
+                                    {% if zone_obj.status == 'on' %}
+                                        <span class="glyphicon glyphicon-play-circle green"></span>
+                                    {% elif zone_obj.status == 'off' %}
+                                        <span class="glyphicon glyphicon-pause orange"></span>
+                                    {% endif %}
+                                </td>
+                                <td><a name="dns_resolution">解析</a>
+                                    <a name="domain_manager">管理</a>
+                                    <span role="presentation" class="dropdown">
+                                        <a id="drop4" href="#" class="dropdown-toggle" data-toggle="dropdown"
+                                           role="button" aria-haspopup="true" aria-expanded="false">
+                                            更多
+                                            <span class="caret"></span>
+                                        </a>
+                                        <ul id="menu1" class="dropdown-menu" aria-labelledby="drop4">
+                                        {% if zone_obj.status == 'on' %}
+                                            <li><a action_type=status name="_turnOff" href="javascript:;">暂停解析</a></li>
+                                        {% elif zone_obj.status == 'off' %}
+                                            <li><a action_type=status name="_turnOn" href="javascript:;">开启解析</a></li>
+                                        {% endif %}
+                                            <li><a action_type="modify" href="javascript:;">修改域名SOA</a></li>
+                                            <li><a action_type="delete" href="javascript:;">删除域名</a></li>
+                                            <li><a action_type="_import_records" href="{% url 'import_dns' %}?zone_id={{ zone_obj.id }}">导入解析记录</a></li>
+                                            <li><a action_type="_export_records" href="javascript:;">导出解析记录</a></li>
+                                        </ul>
+                                    </span>
+                                </td>
+                                <td>{{ zone_obj.create_time|date:"Y-m-d H:i:s" }}</td>
+                                <td>{{ zone_obj.update_time|date:"Y-m-d H:i:s" }}</td>
+                                <td>{% val_none_to_blank zone_obj.comment '' %}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+
+                    </table>
+{#                    <div style="height: 120px"> </div>#}
+                </div>
+
+                <!-- Modal 1 导出DNS解析记录 -->
+                <div class="modal fade" id="ExportRecordModalLabel"  tabindex="-30" role="dialog"
+                     aria-labelledby="DomainStatusModalLabel">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                                        aria-hidden="true">&times;</span></button>
+                                <h4 class="modal-title" id="ExportRecordModalLabel" zone_name="" zone_id="">导出DNS解析记录</h4>
+                            </div>
+                            <div class="modal-body">
+                                <table class="ui-popmsg">
+                                    <tbody>
+                                    <tr>
+                                        <td height="72" class="i"><span class="info">选择导出格式</span></td>
+                                        <td height="72" class="t">
+                                            <span class="info margin-L30">
+                                                <select name="record_format_type" style="width: 100px">
+                                                    <option value="0">Excel表格</option>
+                                                    <option value="1">zone文本</option>
+                                                </select>
+                                            </span>
+                                            <span class="tit"></span></td>
+                                        <td></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                                <button type="button" class="btn btn-primary" name="_export_dns_record_ok">确定</button>
+                            </div>
+                        </div><!-- /.modal-content -->
+                    </div><!-- /.modal-dialog -->
+                </div><!-- /.modal 1-->
+
+                <!-- /.box-body -->
+                {% autoescape off %}    {# 关闭特殊字符转换 #}
+                    {# 分页导航条 #}
+                    {{ pagination_html }}
+                {% endautoescape %}
+

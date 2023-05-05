@@ -1,0 +1,293 @@
+{% extends "bind/tmp/index_tmp.html" %}
+{% load MyTemplate %}
+
+{% block head %}
+    <link rel="stylesheet" href="/static/AdminLTE/css/common.css">
+    <script src="/static/AdminLTE/js/myjs.js"></script>
+    <script src="/static/AdminLTE/js/clipboard.min.js"></script>
+    <script>
+
+        $(function () {
+            //  弹框
+            $('[data-toggle="popover"]').popover({
+                trigger: 'hover',
+{#  	            container: 'body',#}
+            })
+            // 弹框 --end
+
+            // 复制到剪贴板
+            // https://clipboardjs.com/
+            //点击复制host全值到剪贴板
+            new ClipboardJS('.get_full_host', {
+            text: function(trigger) {
+                var _zone_name = $("#table_record_list").attr("zone_name").trim();
+                var _host = $(trigger).prev().text().trim();
+                var _full_host = _host + '.' + _zone_name;
+                if (_host === '@') {
+                    _full_host = _zone_name;
+                }
+{#                console.log(_full_host);#}
+                    return _full_host;
+                }
+            });
+
+            // 点击复制record data到剪贴板
+            new ClipboardJS('.get_record_data', {
+            text: function(trigger) {
+                var _get_data = $(trigger).prev().text().trim();
+                    return _get_data;
+                }
+            });
+            // 复制到剪贴板  --end
+        })
+
+    </script>
+{% endblock %}
+
+
+{% block content %}
+    <!-- Modal 1  删除记录 -->
+    <div class="modal fade" id="RecordDeleteModalLabel" multiple="" tabindex="-10" role="dialog"
+         aria-labelledby="RecordDeleteModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="RecordDeleteModalLabel">删除解析记录</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="ui-popmsg">
+                        <tbody>
+                        <tr>
+                            <td height="72" class="i"><i class="b-error-icon"></i></td>
+                            <td height="72" class="t"><span class="info"><span class="tit">确定删除所选择的解析记录吗？</span><p>
+                                删除后，所选记录将不再有效。</p></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" name="_rr_delete_ok">确定</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal 1-->
+
+
+    <!-- Modal 2 添加记录/修改记录 -->
+    <div class="modal fade" id="RecordAddOrModifyModalLabel" action_type="add" tabindex="-20" role="dialog" aria-labelledby="RecordAddOrModifyModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">添加记录</h4>
+                </div>
+
+                <div class="modal-body">
+
+                    <div class="form-horizontal">
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">记录类型</label>
+                            <div class="col-sm-10">
+                                {% if zone_obj.zone_name|is_reverse_resulution_domain %}
+                                    <select name="type">
+                                        <option value="PTR">PTR</option>
+                                    </select>
+                                {% else %}
+                                    <select name="type">
+                                        <option value="A">A</option>
+                                        <option value="CNAME">CNAME</option>
+                                        <option value="MX">MX</option>
+                                        <option value="TXT">TXT</option>
+                                        <option value="NS">NS</option>
+                                        <option value="AAAA">AAAA</option>
+                                        <option value="SRV">SRV</option>
+{#                                        <option value="SOA">SOA</option>#}
+                                        <option value="CAA">CAA</option>
+                                        <option value="URI">URI</option>
+                                        <option value="EXPLICIT_URL">显性URL</option>
+                                        <option value="IMPLICIT_URL">隐性URL</option>
+                                    </select>
+                                {% endif %}
+                                <a tabindex="0" class="glyphicon glyphicon-question-sign" role="button"
+                                   data-toggle="popover"
+                                   data-trigger="hover"
+                                   data-html="true"
+                                   data-content="<div>A记录： 将域名指向一个IPv4地址(例如：8.8.8.8).<br>
+CNAME：将域名指向另一个域名(例如www.qcloud.com).<br>
+MX： 将域名指向邮件服务器地址.<br>
+TXT： 可任意填写，长度限制255，通常做SPF记录(反垃圾邮件).<br>
+NS： 域名服务器记录，将子域名指定其他DNS服务器解析.<br>
+AAAA：将域名指向一个iPv6地址(例如：ff06:0:0:0:0:0:0:c3).<br>
+SRV：记录了哪台计算机提供了哪个服务。格式为：服务的名字、点、协议的类型，例如：_xmpp-server._tcp<br>
+CAA：Certification Authority Authorization，证书颁发机构授权，是一项防止HTTPS证书错误颁发的安全措施.<br>
+PTR：反射解析，指将IP地址映射到域名上.<br>
+URI：发布从主机名到URI的映射.<br>
+显性URL：将域名重定向到另外一个URL地址.<br>
+隐性URL：与显性URL类似(iframe)，但是会隐藏真实目标地址.<div>"></a>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">主机记录</label>
+                            <div class="col-sm-10">
+                                <input type="text" name="host" class="form-control" style="column-count: 10"
+                                       placeholder="填写子域名（如www），*表示泛域名，不填写默认保存为@">
+                                <a tabindex="0" class="glyphicon glyphicon-question-sign" role="button"
+                                   data-toggle="popover"
+                                   data-trigger="focus"
+                                   data-html="true"
+                                   data-content="要解析www.qcloud.com，请填写www。
+主机记录就是域名前缀，常见用法有：<br>
+<br>
+www： 解析后的域名为www.qcloud.com。<br>
+@： 直接解析主域名 qcloud.com。<br>
+*： 泛解析，匹配其他所有域名 *.qcloud.com。<br>
+mail： 将域名解析为mail.qcloud.com，通常用于解析邮箱服务器。<br>
+二级域名： 如：abc.qcloud.com，填写abc。<br>
+手机网站： 如：m.qcloud.com，填写m。"><span class="icon-question-sign"></span></a>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">解析线路</label>
+                            <div class="col-sm-10">
+                                <select name="resolution_line">
+                                    {% for i in DNS_RESOLUTION_LINE %}
+                                        <option value="{{ i.0 }}">{{ i.1 }}</option>
+                                    {% endfor %}
+
+                                </select>
+
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">记录值</label>
+                            <div class="col-sm-10">
+                                <select name="redirect_code" style="display:none">
+                                    <option value="302" selected="selected">302</option>
+                                    <option value="301">301</option>
+                                </select>
+                                <input type="text" name="data" class="form-control" placeholder="填写一个IPv4地址，例如：8.8.8.8">
+                            </div>
+                        </div>
+                        <div class="form-group" style="display:none">
+                            <label class="col-sm-2 control-label">MX优先级</label>
+                            <div class="col-sm-10">
+                                <input type="number" name="mx" value="" class="form-control"
+                                       placeholder="输入0-50范围数值，越小优先级越高">
+
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">TTL</label>
+                            <div class="col-sm-10">
+                                <select name="ttl">
+                                    <option value="60">1分钟</option>
+                                    <option value="600" selected="selected">10分钟</option>
+                                    <option value="1800">30分钟</option>
+                                    <option value="3600">1小时</option>
+                                    <option value="43200">12小时</option>
+                                    <option value="86400">24小时</option>
+                                </select>
+                                <a tabindex="0" class="glyphicon glyphicon-question-sign" role="button"
+                                   data-toggle="popover"
+                                   data-trigger="focus"
+                                   data-html="true"
+                                   data-content="各地DNS服务器缓存解析记录时长，缓存失效后才会重新获取记录值。<br>建议正常情况下设定10分钟即可。"></a>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="col-sm-2 control-label">备注</label>
+                            <div class="col-sm-10">
+                                <input type="text" value="" name="comment" class="form-control" placeholder="可不填写">
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" name="_save" class="btn btn-primary">保存</button>
+                    <button type="button" name="_cancel" class="btn btn-default" data-dismiss="modal">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal 2 end -->
+
+    <!-- Modal 3 修改记录状态值 -->
+    <div class="modal fade" id="RecordStatusModalLabel" multiple="" name="" tabindex="-30" role="dialog"
+         aria-labelledby="RecordStatusModalLabel">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="RecordStatusModalLabel">记录状态操作</h4>
+                </div>
+                <div class="modal-body">
+                    <table class="ui-popmsg">
+                        <tbody>
+                        <tr>
+                            <td height="72" class="i"><i class="b-error-icon"></i></td>
+                            <td height="72" class="t"><span class="info"></span><span class="tit"></span></td>
+                        </tr>
+                        </tbody>
+                    </table>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-primary" name="_modify_status_ok">确定</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal 3-->
+
+    <div class="nav nav-pills"> <!-- 右侧栏标题 -->
+        <div zone_name="" class="col-xs-12 title_2" ><a href="/domains/rlist"><span
+            class="iconfont icon-fanhui3 title_2"></span></a>{{ zone_obj.zone_name }}
+        </div>
+    </div>
+    <div>
+        <div class="col-xs-12">
+            <div class="box">
+                <div class="box-header">
+                    <h2 class="box-title rr-status-operate">
+                        <!-- Button trigger modal -->
+                        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#RecordAddOrModifyModalLabel">+
+                            添加记录
+                        </button>
+                        <button type="button" action_type="status" name="_turnOff" class="btn btn-default">暂停</button>
+                        <button type="button" action_type="status" name="_turnOn" class="btn btn-default">启动</button>
+                        <button type="button" action_type="delete" class="btn btn-default">删除</button>
+                    </h2>
+
+                    <div class="box-tools">
+                        <div class="input-group input-group-sm" style="width: 300px;">
+                            <input type="text" name="dns_record_search" class="form-control pull-right" placeholder="Search">
+                            <span class="glyphicon glyphicon-remove"
+                                  name="clear-previous-input" disabled
+                                  style="position:absolute; top:10px; right:45px; z-index:10; caret-color:transparent"></span>
+                            <div class="input-group-btn">
+                                <button type="submit" name="dns_record_search_submit" class="btn btn-default"><i class="fa fa-search"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- /.box-header 记录列表、分页导航 -->
+                <div id="domain_record_box">
+                    {% include "bind/tmp/domain_record_table_tmp.html" %}
+                </div>
+                <!-- /.box-body -->
+            </div>
+            <!-- /.box -->
+        </div>
+
+    </div>
+{% endblock %}

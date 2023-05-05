@@ -1,0 +1,47 @@
+# 环境配置
+server:
+  # 服务器的 HTTP 端口，默认为80
+  port: 80
+
+# spring 配置
+spring:
+  # 数据源配置
+  datasource:
+    # MySQL
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/dns?useUnicode=true&characterEncoding=UTF-8&serverTimezone=GMT%2B8&useSSL=false&allowMultiQueries=true
+    username: dns_r
+    password: Rr123456!
+
+    # PostgreSQL
+#    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://10.100.240.135:5432/bind_ui
+#    username: bind_ui_r
+#    password: Rr123456!
+
+logging:
+  file:
+    # 访问日志目录
+    path: /data/logs/url-forwarder
+
+# 自定义配置
+myconfig:
+  # 静态资源版本号
+  version: 20230407001
+  # DNS 的解析线路。字符串类型。参考下面的定义，其中 “all” 表示所有线路（不限线路）
+  # DNS_RESOLUTION_LINE = (
+  # ('0', '默认'),
+  # ('cn', '国内'),
+  # ('abroad', '国外'),
+  # ('101', '电信'),
+  # ('102', '联通'),
+  # ('103', '移动'),
+  # ('104', '教育网'),
+  # )
+  resolution-line: "all"
+  # 完整域名查找深度。
+  # 如 FQDN 为 book.sys.qq.com，
+  # 如果 fqdn-search-deep 为1，则 host 为 book，domain(zone) 为 sys.qq.com
+  # 如果 fqdn-search-deep 为2，则 host 为 book.sys，domain(zone) 为 qq.com
+  # ...
+  fqdn-search-deep: 2

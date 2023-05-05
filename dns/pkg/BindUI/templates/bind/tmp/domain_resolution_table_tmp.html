@@ -1,0 +1,37 @@
+{% load MyTemplate %}
+                <div class="box-body table-responsive no-padding">
+                    <table id="table_domains" class="table table-hover">
+                        <thead>
+                        <tr>
+                            <th class="th-w1-1"><input type="checkbox" data-check-all onclick="SelectAll('#table_domains' )"></th>
+                            <th class="th-w1-2">域名</th>
+                            <th class="th-w1-3">状态</th>
+                            <th class="th-w1-6">操作</th>
+                            <th class="th-w1-6">备注</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for zone_obj in zone_obj_list %}
+                            <tr>
+                                <td><input type="checkbox" id="{{ zone_obj.id }}"></td>
+                                <td><a href="/dns/{{ zone_obj.id }}">{{ zone_obj.zone_name }}</a></td>
+                                <td>
+                                    {% if zone_obj.status == 'on' %}
+                                        <span class="glyphicon glyphicon-play-circle green"></span>
+                                    {% elif zone_obj.status == 'off' %}
+                                        <span class="glyphicon glyphicon-pause orange"></span>
+                                    {% endif %}
+                                </td>
+                                <td><a href="/dns/{{ zone_obj.id }}">解析</a>  <a>更多</a></td>
+                                <td>{% val_none_to_blank zone_obj.comment '' %}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+
+                    </table>
+                </div>
+                <!-- /.box-body -->
+                {% autoescape off %}    {# 关闭特殊字符转换 #}
+                    {# 分页导航条 #}
+                    {{ pagination_html }}
+                {% endautoescape %}

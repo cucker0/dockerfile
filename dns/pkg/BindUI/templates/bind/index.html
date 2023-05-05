@@ -1,0 +1,20 @@
+{% extends "bind/tmp/index_tmp.html" %}
+
+{% block head %}
+    <link rel="stylesheet" href="/static/AdminLTE/css/common.css">
+    <script src="/static/AdminLTE/js/myjs.js"></script>
+{% endblock %}
+
+{% block content %}
+    <div class="content">
+        <div class="title">产品</div>
+        <div class="products-box">
+            <a class="product-box" href="/domains/rlist" target="_self">
+                <div class="iconfont icon-DNS-xiugai"></div>
+                <p class="product-name">域名</p>
+                <p>{{ zone_count }} 个</p>
+            </a>
+        </div>
+    </div>
+{% endblock %}
+
