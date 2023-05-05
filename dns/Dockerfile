@@ -14,7 +14,7 @@ COPY pkg/BIND/config/dlz-mysql/systemctl/named.service /usr/lib/systemd/system/
 COPY pkg/BIND/config/dlz-mysql/etc/named/ ${BIND_PATH}/etc/
 COPY pkg/MySQL/* /pkg/MySQL/
 COPY pkg/linux/bindui.service /etc/systemd/system/
-COPY pkg/linux/docker-entrypoint.sh /usr/local/bin/
+#COPY pkg/linux/docker-entrypoint.sh /usr/local/bin/
 #ADD https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz /usr/local/src/
 #ADD https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz /usr/local/src/
 #ADD https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz /usr/local/src/
@@ -75,9 +75,10 @@ RUN set -eux; \
     systemctl enable bindui; \
     # Install JDK; \
     cd /usr/local/src; \
-    wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz; \
+    #wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz; \
+    wget https://download.oracle.com/java/17/archive/jdk-17.0.6_linux-x64_bin.tar.gz; \
     mkdir -p /usr/local/java; \
-    tar -xvf jdk-17_linux-x64_bin.tar.gz -C /usr/local/java/; \  
+    tar -xvf jdk-17.0.6_linux-x64_bin.tar.gz -C /usr/local/java/; \  
     ln -s /usr/local/java/jdk-17.0.6 /usr/local/java/jdk; \
     # 设置JDK系统环境变量; \
     echo -e '\n\
@@ -112,8 +113,9 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     systemctl enable named; \
     # Clear work; \
     rm -rf /usr/local/src/*; \
+    yum -y remove gcc automake autoconf libtool make gcc gcc-c++; \
     yum clean all;
 
 EXPOSE 53/udp 53/TCP 80/tcp 8000/tcp 3306/tcp
 
-ENTRYPOINT [ "/usr/local/bin/docker-entrypoint.sh" ]
+ENTRYPOINT [ "/usr/sbin/init" ]
