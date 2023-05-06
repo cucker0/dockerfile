@@ -1,5 +1,7 @@
 # builder_python
 FROM rockylinux:9.1 AS builder_python
+ARG PYTHON_PATH=/usr/local/python3.11.3
+ARG BIND_PATH=/usr/local/bind_9.16.39
 ADD pkg/python/Python-3.11.3.tar.xz /usr/local/src/
 ADD pkg/BindUI/requirements.txt /usr/local/src/
 COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
@@ -81,11 +83,11 @@ RUN set -eux; \
 FROM rockylinux:9.1
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
+ARG PYTHON_PATH=/usr/local/python3.11.3
+ARG BIND_PATH=/usr/local/bind_9.16.39
 ENV DJANGO_SUPERUSER_NAME=admin
 ENV DJANGO_SUPERUSER_EMAIL=admin@my.com
 ENV DJANGO_SUPERUSER_PASSWORD=Dns123456!
-ENV PYTHON_PATH=/usr/local/python3.11.3
-ENV BIND_PATH=/usr/local/bind_9.16.39
 COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
 ADD pkg/BindUI.tar.gz /data/webroot/
@@ -98,11 +100,11 @@ COPY pkg/linux/bindui.service /etc/systemd/system/
 #ADD https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz /usr/local/src/
 #ADD https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz /usr/local/src/
 #ADD https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz /usr/local/src/
-#COPY pkg/JDK/jdk-17_linux-x64_bin.tar.gz /usr/local/src/
+ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
 #COPY pkg/python/Python-3.11.3.tar.xz /usr/local/src/
 #COPY pkg/BIND/bind-9.16.39.tar.xz /usr/local/src/
-COPY --from=builder_python /usr/local/python3.11.3 /usr/local/
-COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/
+COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
+COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/bind_9.16.39/
 
 
 RUN set -eux; \
@@ -135,12 +137,12 @@ RUN set -eux; \
     echo "from django.contrib.auth.models import User; User.objects.create_superuser('$DJANGO_SUPERUSER_NAME', '$DJANGO_SUPERUSER_EMAIL', '$DJANGO_SUPERUSER_PASSWORD')" | ${PYTHON_PATH}/bin/python3 ./manage.py shell; \
     systemctl enable bindui; \
     # Install JDK; \
-    cd /usr/local/src; \
-    #wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz; \
-    wget https://download.oracle.com/java/17/archive/jdk-17.0.6_linux-x64_bin.tar.gz; \
-    mkdir -p /usr/local/java; \
-    tar -xvf jdk-17.0.6_linux-x64_bin.tar.gz -C /usr/local/java/; \  
-    ln -s /usr/local/java/jdk-17.0.6 /usr/local/java/jdk; \
+    #cd /usr/local/src; \
+    #wget https://download.oracle.com/java/17/archive/jdk-17.0.6_linux-x64_bin.tar.gz; \
+    #mkdir -p /usr/local/java; \
+    #tar -xvf jdk-17.0.6_linux-x64_bin.tar.gz -C /usr/local/java/; \ 
+    cd /usr/local/java; \
+    ln -s jdk-17.0.6 jdk; \
     # 设置JDK系统环境变量; \
     echo -e '\n\
 ## JAVA\n\
