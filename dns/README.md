@@ -35,10 +35,10 @@ get_run_command <CONTAINER>
 
     ```bash
     ## run a container for mysql
-    docker run -d --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp hanxiao2100/dns:all-2.0
-    docker run -dit --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/sbin/init hanxiao2100/dns:all-2.0
-    docker run -dit --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/bin/bash hanxiao2100/dns:all-2.0 /usr/local/bin/docker-entrypoint.sh
-    docker run -d --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/sbin/init hanxiao2100/dns:all-2.0 & /usr/local/python3.11.3/bin/python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
+    docker run -d --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp cucker/dns:all-2.0
+    docker run -dit --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/sbin/init cucker/dns:all-2.0
+    docker run -dit --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/bin/bash cucker/dns:all-2.0 /usr/local/bin/docker-entrypoint.sh
+    docker run -d --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/sbin/init cucker/dns:all-2.0 & /usr/local/python3.11.3/bin/python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
     
     ## Command alias
     echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
@@ -56,6 +56,9 @@ get_run_command <CONTAINER>
 ```bash
 cd <Dockerfile_root_path>
 chmod +x  pkg/linux/docker-entrypoint.sh
-docker build -f ./Dockerfile -t hanxiao2100/dns:all-2.0 .
-docker build --no-cache -f ./Dockerfile -t hanxiao2100/dns:all-2.0 .
+docker build -f ./Dockerfile -t cucker/dns:all-2.0 .
+// or
+docker build --no-cache -f ./Dockerfile -t cucker/dns:all-2.0 .
+
+docker build -f ./Dockerfile_2.1 -t cucker/dns:all-2.1 .
 ```
