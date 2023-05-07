@@ -2,57 +2,54 @@
 
 
 ## What's this
-Get the command for run container from a container.
-
-include docker run options and arguments.
+这是一款基于BIND和WEB的智能DNS域名管理系。使用BIND + DLZ + MySQL/PostgreSQL + Django + Spring Boot技术进行开发，支持常用的DNS记录类型，并额外扩展了支持HTTP URL转发的显性URL、隐性URL记录。系统降低了域名管理的管理和使用成本，成为一款易用的企业级域名管理系统。
 
 ## Supported tags and respective `Dockerfile` links
-* [`1.1`, `latest`](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container/df/Dockerfile)
-* [`1.0`](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container/df/Dockerfile)
+* [`all-2.1`, `latest`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
+* [`all-2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
 
 ## How to use this image
 ```bash
-Usage:
-# Command alias
-echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
-. ~/.bashrc
+docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.0
 
-# Excute command
-get_run_command <CONTAINER>
+# or
+docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.1
 ```
-<CONTAINER> is `container id` or `container name`
 
+## System Information
+* BindUI Account Info
+    ```
+    url：http://<IP_MAP>:8000
+    user：admin
+    password：Dns123456!
+    ```
+* MySQL
+    ```
+    user1：root
+    password：Py123456!
 
-* See help
-    ```bash
-    docker run --rm cucker/get_command_4_run_container --help
-    
-    # or
-    docker run --rm cucker/get_command_4_run_container
+    ## database：dns
+    user2：'dns_wr'@'%'
+    password：Ww123456!
+
+    user3：'dns_r'@'%'
+    password：Rr123456!
     ```
 
-* For example
-
-    ```bash
-    ## run a container for mysql
-    docker run -d --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp cucker/dns:all-2.0
-    docker run -dit --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/sbin/init cucker/dns:all-2.0
-    docker run -dit --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/bin/bash cucker/dns:all-2.0 /usr/local/bin/docker-entrypoint.sh
-    docker run -d --privileged --name dns --restart=always -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp -p 53:53/udp --entrypoint /usr/sbin/init cucker/dns:all-2.0 & /usr/local/python3.11.3/bin/python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
-    
-    ## Command alias
-    echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
-    . ~/.bashrc
-    
-    ## Excute command
-    get_run_command mysql01
-    # Output results
-    docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysql
+* Port Info
     ```
+    EXPOSE 53/udp 53/tcp 80/tcp 8000/tcp 3306/tcp
+    53/udp -> bind
+    53/tcp -> bind
+    80/tcp -> url-forwarder
+    8000/tcp -> BindUI
+    3306/tcp -> MySQL
+    ```
+
 ## Project
-[get_command_4_run_container](https://github.com/cucker0/dockerfile/blob/main/get_command_4_run_container)
+[dns](https://github.com/cucker0/dockerfile/blob/main/dns/)
 
-## docker build
+## Docker build
 ```bash
 cd <Dockerfile_root_path>
 chmod +x  pkg/linux/docker-entrypoint.sh
@@ -60,5 +57,6 @@ docker build -f ./Dockerfile -t cucker/dns:all-2.0 .
 // or
 docker build --no-cache -f ./Dockerfile -t cucker/dns:all-2.0 .
 
+# or 
 docker build -f ./Dockerfile_2.1 -t cucker/dns:all-2.1 .
 ```
