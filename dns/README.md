@@ -1,15 +1,17 @@
-# dns
+# DNS
 
 
 ## What's this
 这是一款基于BIND和WEB的智能DNS域名管理系。使用BIND + DLZ + MySQL/PostgreSQL + Django + Spring Boot技术进行开发，支持常用的DNS记录类型，并额外扩展了支持HTTP URL转发的显性URL、隐性URL记录。系统降低了域名管理的管理和使用成本，成为一款易用的企业级域名管理系统。
 
 ## Supported tags and respective `Dockerfile` links
-* [`all-2.2`, `latest`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
-* [`all-2.1`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
-* [`all-2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
+* [`all-2.2`, `latest`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
+* [`all-2.1`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
+* [`all-2.0`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
 
 ## How to use this image
+
+### All in One
 ```bash
 docker run -d --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.2
 

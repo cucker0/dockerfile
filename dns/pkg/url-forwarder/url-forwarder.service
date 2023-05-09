@@ -7,7 +7,7 @@ Type=simple
 Environment="LOG_PATH=/data/logs/url-forwarder"
 Environment="SERVICE_LOG_FOLDER=/data/logs"
 
-ExecStartPre=/usr/bin/bash -c 'if [ ! -d ${LOG_PATH} ]; then mkdir -p ${LOG_PATH}; fi; /bin/sleep 2'
+ExecStartPre=/usr/bin/bash -c "if [ ! -d ${LOG_PATH} ]; then mkdir -p ${LOG_PATH}; fi; /bin/sleep 2"
 ExecStart=/usr/local/java/jdk/bin/java \
   -server -Xms2g -Xmx2g -XX:+UseG1GC -verbose:gc \
   -XX:+HeapDumpOnOutOfMemoryError \

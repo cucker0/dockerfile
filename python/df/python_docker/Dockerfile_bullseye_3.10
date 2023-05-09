@@ -2,4 +2,4 @@ FROM python:3.10-bullseye
 LABEL maintainer='Python with Docker module Maintainers <hanxiao2100@qq.com>'
 
 COPY requirements.txt /usr/local/src/
-RUN pip install --no-cache-dir -r /usr/local/src/requirements.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r /usr/local/src/requirements.txt
