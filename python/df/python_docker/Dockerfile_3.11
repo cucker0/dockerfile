@@ -1,0 +1,5 @@
+FROM python:3.11.3-alpine3.18
+LABEL maintainer='Python with Docker module Maintainers <hanxiao2100@qq.com>'
+
+COPY requirements.txt /usr/local/src/
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r /usr/local/src/requirements.txt
