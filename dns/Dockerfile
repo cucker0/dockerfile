@@ -38,9 +38,9 @@ RUN set -eux; \
     # Install MySQL; \
     dnf -y install https://repo.mysql.com/mysql80-community-release-el9-1.noarch.rpm; \
     # 安装最新版本MySQL; \
-    dnf -y install mysql-server mysql mysql-devel; \
+    #dnf -y install mysql-server mysql mysql-devel; \
     # 如果是安装指定版本的 MySQL; \
-    #dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    dnf -y install mysql-community-server-8.0.32 mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
     bash /usr/bin/mysqld_pre_systemd; \
     /usr/sbin/mysqld --user=mysql -D ; \
     bash /pkg/MySQL/update_root_password.sh; \
@@ -119,7 +119,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     yum -y remove gcc automake autoconf libtool make gcc gcc-c++; \
     yum clean all;
 
-VOLUME [/var/lib/mysql]
+VOLUME ["/var/lib/mysql"]
 EXPOSE 53/udp 53/tcp 80/tcp 8000/tcp 3306/tcp
 
 ENTRYPOINT [ "/usr/sbin/init" ]

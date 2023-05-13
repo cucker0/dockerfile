@@ -186,7 +186,7 @@ RUN set -eux; \
     chmod +x /server-start.sh; \
     systemctl disable mysqld named url-forwarder bindui; 
 
-VOLUME [/var/lib/mysql]
+VOLUME ["/var/lib/mysql"]
 EXPOSE 53/udp 53/tcp 80/tcp 8000/tcp 3306/tcp
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
