@@ -3,13 +3,13 @@
 
 
 LOG_PATH=/data/logs/url-forwarder
+CONFIG_PATH=/etc/url-forwarder/
 
 # 如果 docker run -v 映射卷时，主机目录为空，则复制原始的配置到主机上
 copyConfigFile2Host() {
-    local TAG_PATH=/etc/url-forwarder/
     if [ -d ${CONFIG_PATH} ]; then
-        if [ "$(ls -A ${TAG_PATH})" == "" ]; then
-            cp -a /dns/origin/url-forwarder/application.yml  /etc/url-forwarder
+        if [ "$(ls -A ${CONFIG_PATH})" == "" ]; then
+            cp -a /dns/origin/url-forwarder/application.yml ${CONFIG_PATH}
         fi
     fi
     

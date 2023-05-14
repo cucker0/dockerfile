@@ -1,16 +1,18 @@
 FROM rockylinux:9.1
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
-ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
+# ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
 COPY pkg/url-forwarder/* /data/software/url-forwarder/
 COPY /pkg/url-forwarder/docker-entrypoint.sh /
 
 RUN set -eux; \
+    # Install ps; \
+    dnf -y install procps-ng wget; \
     # Install JDK; \
-    #cd /usr/local/src; \
-    #wget https://download.oracle.com/java/17/archive/jdk-17.0.6_linux-x64_bin.tar.gz; \
-    #mkdir -p /usr/local/java; \
-    #tar -xvf jdk-17.0.6_linux-x64_bin.tar.gz -C /usr/local/java/; \ 
+    cd /usr/local/src; \
+    wget https://download.oracle.com/java/17/archive/jdk-17.0.6_linux-x64_bin.tar.gz; \
+    mkdir -p /usr/local/java; \
+    tar -xvf jdk-17.0.6_linux-x64_bin.tar.gz -C /usr/local/java/; \ 
     cd /usr/local/java; \
     ln -s jdk-17.0.6 jdk; \
     # 设置JDK系统环境变量; \
@@ -21,13 +23,16 @@ export CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar\n\
 \n\
 ## PATH\n\
 export PATH=$PATH:$JAVA_HOME/bin\n\
-'>> /etc/profile; \
+'>> /etc/profile.d/env.sh; \
     mkdir -p /etc/url-forwarder; \
     mkdir -p /dns/origin/url-forwarder; \
     cp -a /data/software/url-forwarder/application.yml /dns/origin/url-forwarder; \
     mv /data/software/url-forwarder/application.yml /etc/url-forwarder/; \
     ln -s /etc/url-forwarder/application.yml /data/software/url-forwarder/; \
-    chmod +x /docker-entrypoint.sh;
+    chmod +x /docker-entrypoint.sh; \
+    # Clear work; \
+    rm -rf /usr/local/src/*; \
+    dnf clean all;
 
 VOLUME ["/etc/url-forwarder"]
 EXPOSE 80/tcp
