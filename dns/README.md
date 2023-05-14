@@ -22,6 +22,43 @@ docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp
 docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.0
 ```
 
+### Muilt component
+* MySQL
+    ```bash
+    docker run -d --name mysql \
+     -e MYSQL_ROOT_PASSWORD=Py123456! \
+     -e MYSQL_DATABASE=dns \
+     -e MYSQL_USER=dns_wr \
+     -e MYSQL_PASSWORD=Ww123456! \
+     -p 3306:3306 \
+     mysql:8.0.32 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ```
+
+* url-forwarder
+    ```bash
+    # 1. run url-forwarder container
+    docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
+    
+    # 2. run a temp container for copy src
+    docker run -dit --name url-forwarder_src cucker/dns:url-forwarder_2.0 bash
+    docker cp url-forwarder_src:/etc/url-forwarder/application.yml /etc/dns/url-forwarder/
+    
+    # 3.  modify /etc/url-forwarder/application.yml, include connection database info.
+    
+    # restart url-forwarder container
+    docker restart url-forwarder
+    ```
+
+* BindUI
+```bash
+
+```
+
+* BIND
+```bash
+
+```
+
 ## System Information
 * BindUI Account Info
     ```

@@ -22,7 +22,9 @@ export CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar\n\
 ## PATH\n\
 export PATH=$PATH:$JAVA_HOME/bin\n\
 '>> /etc/profile; \
-    mkdir /etc/url-forwarder; \
+    mkdir -p /etc/url-forwarder; \
+    mkdir -p /dns/origin/url-forwarder; \
+    cp -a /data/software/url-forwarder/application.yml /dns/origin/url-forwarder; \
     mv /data/software/url-forwarder/application.yml /etc/url-forwarder/; \
     ln -s /etc/url-forwarder/application.yml /data/software/url-forwarder/; \
     chmod +x /docker-entrypoint.sh;
