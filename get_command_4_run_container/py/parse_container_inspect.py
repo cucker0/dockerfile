@@ -897,7 +897,7 @@ class PARSE_OPTIONS(object):
     def cgroupns(self):
         if not self.inspect['HostConfig']['CgroupnsMode']:
             return
-        if self.inspect['HostConfig']['CgroupnsMode'] != "host":
+        if self.inspect['HostConfig']['CgroupnsMode'] != "private":
             self.options['kv'].append(
                 {'--cgroupns': self.inspect['HostConfig']['CgroupnsMode']}
             )
