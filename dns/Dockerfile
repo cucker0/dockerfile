@@ -120,6 +120,6 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     yum clean all;
 
 VOLUME ["/var/lib/mysql"]
-EXPOSE 53/udp 53/tcp 80/tcp 8000/tcp 3306/tcp
+EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 3306/tcp
 
 ENTRYPOINT [ "/usr/sbin/init" ]
