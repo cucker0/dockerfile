@@ -69,25 +69,34 @@ docker run -d --privileged --name dns \
     ```
 
 * BindUI
-```bash
+    ```bash
+    docker run -d --name BindUI \
+     --restart=always \
+     -p 8000:8000 \
+     -v /etc/dns/BindUI:/etc/BindUI \
+     cucker/dns:BindUI_2.0
+     
+    # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息
 
-```
+    # 重启容器
+    docker restart BindUI
+    ```
 
 * BIND
 ```bash
-docker run -d --name bind  \
- --restart=always \
- -p 53:53/udp \
- -p 53:53/tcp \
- -p 127.0.0.1:953:953/tcp \
- -v /etc/dns/named:/etc/named \
- cucker/dns:bind_dlz-mysql_2.0
- 
-# /etc/dns/named/bind_db_connection_info.sh 文件中，修改正确数据库连接信息，不正确的将导致容器启动失败。
+    docker run -d --name bind  \
+     --restart=always \
+     -p 53:53/udp \
+     -p 53:53/tcp \
+     -p 127.0.0.1:953:953/tcp \
+     -v /etc/dns/named:/etc/named \
+     cucker/dns:bind_dlz-mysql_2.0
+     
+    # /etc/dns/named/bind_db_connection_info.sh 文件中，修改正确数据库连接信息，不正确的将导致容器启动失败。
 
-# 重启容器 bind
-docker restart bind
-```
+    # 重启容器
+    docker restart bind
+    ```
 
 ## System Information
 * BindUI Account Info

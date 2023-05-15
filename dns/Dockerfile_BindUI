@@ -1,0 +1,19 @@
+FROM python:3.9.6-alpine3.14
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+ADD pkg/BindUI/requirements.txt /usr/local/src/
+ADD pkg/BindUI.tar.gz /data/webroot/
+COPY pkg/BindUI/docker-entrypoint.sh /
+COPY pkg/BindUI/docker_init_info.sh /etc/BindUI/
+
+RUN set -eux; \
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements.txt; \
+    mkdir -p /dns/origin/BindUI/; \
+    cp -a /etc/BindUI/* /dns/origin/BindUI/; \
+    # docker-entrypoint.sh; \
+    chmod +x /docker-entrypoint.sh; 
+    
+VOLUME ["/etc/BindUI"]
+EXPOSE 8000/tcp
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
