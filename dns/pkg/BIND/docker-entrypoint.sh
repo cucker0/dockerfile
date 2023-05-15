@@ -32,7 +32,7 @@ _main() {
     # start service
     /usr/local/bind/sbin/named -f -n 1 -u named -c /usr/local/bind/etc/named.conf
     if [ $? != 0 ]; then
-        echo "请把数据库连接信填写正确！"
+        echo "$(date +"%Y%M%d %H:%m:%S")  请把数据库连接信填写正确！"
     fi
     # 如果用户传了参数，则执行用户传的参数命令
     exec "$@"
