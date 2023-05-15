@@ -13,13 +13,36 @@
 
 ### All in One
 ```bash
-docker run -d --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.2
+docker run -d --name dns \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -p 80:80/tcp \
+ -p 8000:8000/tcp \
+ -p 3306:3306/tcp \
+ cucker/dns:all-2.2
 
 # or
-docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.1
+docker run -d --privileged --name dns \
+ --restart=always \
+ -p 53:53/udp -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -p 80:80/tcp \
+ -p 8000:8000/tcp \
+ -p 3306:3306/tcp \
+ cucker/dns:all-2.1
 
 # or
-docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp -p 80:80/tcp -p 8000:8000/tcp -p 3306:3306/tcp cucker/dns:all-2.0
+docker run -d --privileged --name dns \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -p 80:80/tcp \
+ -p 8000:8000/tcp \
+ -p 3306:3306/tcp \
+ cucker/dns:all-2.0
 ```
 
 ### Muilt component
@@ -38,14 +61,10 @@ docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp
     ```bash
     # 1. run url-forwarder container
     docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
+        
+    # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
     
-    # 2. run a temp container for copy src
-    docker run -dit --name url-forwarder_src cucker/dns:url-forwarder_2.0 bash
-    docker cp url-forwarder_src:/etc/url-forwarder/application.yml /etc/dns/url-forwarder/
-    
-    # 3.  modify /etc/url-forwarder/application.yml, include connection database info.
-    
-    # restart url-forwarder container
+    # 3. restart url-forwarder container
     docker restart url-forwarder
     ```
 
@@ -56,7 +75,18 @@ docker run -d --privileged --name dns --restart=always -p 53:53/udp -p 53:53/tcp
 
 * BIND
 ```bash
+docker run -d --name bind  \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -v /etc/dns/named:/etc/named \
+ cucker/dns:bind_dlz-mysql_2.0
+ 
+# /etc/dns/named/bind_db_connection_info.sh 文件中，修改正确数据库连接信息，不正确的将导致容器启动失败。
 
+# 重启容器 bind
+docker restart bind
 ```
 
 ## System Information

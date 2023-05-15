@@ -1,13 +1,8 @@
-FROM rockylinux:9.1
-LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
-
-ARG BIND_PATH=/usr/local/bind_9.16.39
-
+# builder_bind
+FROM rockylinux:9.1 AS builder_bind
+ADD pkg/BIND/bind-9.16.39.tar.xz /usr/local/src/
 COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
-COPY pkg/BIND/docker-entrypoint.sh /
-COPY pkg/BIND/config/dlz-mysql/etc/named/ ${BIND_PATH}/etc/
-COPY pkg/BIND/bind_db_connection_info.sh ${BIND_PATH}/etc/
 
 RUN set -eux; \
     dnf clean all; \
@@ -26,21 +21,59 @@ RUN set -eux; \
     #dnf -y install mysql mysql-devel; \
     # 如果是安装指定版本的 MySQL; \
     dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
-    dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget xz; \
+    dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
     dnf -y install python3-ply perl-diagnostics epel-release diffutils; \
     dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
     #dnf -y install bind-utils; \
-    cd /usr/local/src; \
-    wget https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz; \
-    tar -Jxvf bind-9.16.39.tar.xz; \
-    cd bind-9.16.39; \
+    cd /usr/local/src/bind-9.16.39; \
+    #wget https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz; \
+    #tar -Jxvf bind-9.16.39.tar.xz; \
+    #cd bind-9.16.39; \
     export LDFLAGS=-L/usr/lib64/mysql; \
     ./configure --prefix=/usr/local/bind_9.16.39 --with-dlz-mysql=yes --enable-epoll --enable-largefile; \
     make; \
-    make install; \
+    make install;
+
+# origin
+FROM rockylinux:9.1
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+ARG BIND_PATH=/usr/local/bind_9.16.39
+
+COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
+COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
+COPY pkg/BIND/docker-entrypoint.sh /
+COPY pkg/BIND/config/dlz-mysql/etc/named/ ${BIND_PATH}/etc/
+COPY pkg/BIND/bind_db_connection_info.sh ${BIND_PATH}/etc/
+COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/bind_9.16.39/
+
+RUN set -eux; \
+    dnf clean all; \
+    dnf makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    dnf -y install https://repo.mysql.com/mysql80-community-release-el9-1.noarch.rpm; \
+    # 安装最新版本MySQL; \
+    #dnf -y install mysql mysql-devel; \
+    # 如果是安装指定版本的 MySQL; \
+    dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    dnf -y install libuv procps-ng; \
+    # Install BIND; \
+    dnf -y install libuv; \
     ln -s /usr/local/bind_9.16.39 /usr/local/bind; \
     ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
     ln -s /usr/local/bind/bin/dig /usr/bin/; \
+    groupadd -g 25 named; \
+    useradd named -M -u 25 -g 25 -s /sbin/nologin; \
+    mkdir -p /usr/local/bind/var; chown -R named:named /usr/local/bind/var; \
+    mkdir -p /var/log/named /usr/local/bind/etc/conf.d; chown -R named.named /var/log/named; \
     mkdir -p /dns/origin/bind; \
     cp -a /usr/local/bind/etc /dns/origin/bind/; \
     mv /usr/local/bind/etc /etc/named; \
@@ -49,9 +82,9 @@ RUN set -eux; \
     chmod +x /docker-entrypoint.sh; \
     # Clear work; \
     rm -rf /usr/local/src/*; \
-    dnf -y remove gcc automake autoconf libtool make gcc gcc-c++ wget; \
     dnf clean all;
-
+    
 VOLUME ["/etc/named"]
 EXPOSE 53/udp 53/tcp 953/tcp
+
 ENTRYPOINT ["/docker-entrypoint.sh"]
