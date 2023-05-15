@@ -18,10 +18,10 @@ copyConfigFile2Host() {
 # 更新 /etc/named/conf/*.conf 的数据库连接信息
 updateBindConfig() {
     if [ ${UPDATE_CONFIG} != 0 ]; then
-        sed -i 's#{host=.*$#{host='"${DB_HOST}"' dbname='"${DB_NAME}"' ssl=false port='"${DB_PORT}"' user='"${DB_USER}"' pass='"${DB_PASSWORD}"'}#' /etc/named/conf.d/*.conf
+        sed -i "s#{host=.*#{host=${DB_HOST} dbname=${DB_NAME} ssl=false port=${DB_PORT} user=${DB_USER} pass=${DB_PASSWORD}}#" /etc/named/conf.d/*.conf
         
         # 重置为不更新配置
-        sed -i s'#UPDATE_CONFIG.*#UPDATE_CONFIG=0#' /etc/named/bind_db_connection_info.sh
+        sed -i 's#UPDATE_CONFIG.*#UPDATE_CONFIG=0#' /etc/named/bind_db_connection_info.sh
     fi
 }
 
