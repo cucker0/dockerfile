@@ -3,7 +3,7 @@ LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 # ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
 COPY pkg/url-forwarder/* /data/software/url-forwarder/
-COPY /pkg/url-forwarder/docker-entrypoint.sh /
+COPY pkg/url-forwarder/docker-entrypoint.sh /
 
 RUN set -eux; \
     # Install ps; \
