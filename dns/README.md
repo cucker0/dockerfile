@@ -92,7 +92,7 @@ docker run -d --privileged --name dns \
      -v /etc/dns/named:/etc/named \
      cucker/dns:bind_dlz-mysql_2.0
      
-    # /etc/dns/named/bind_db_connection_info.sh 文件中，修改正确数据库连接信息，不正确的将导致容器启动失败。
+    # /etc/dns/named/docker_init_info.sh.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
 
     # 重启容器
     docker restart bind
@@ -120,9 +120,10 @@ docker run -d --privileged --name dns \
 
 * Port Info
     ```
-    EXPOSE 53/udp 53/tcp 80/tcp 8000/tcp 3306/tcp
+    EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 3306/tcp
     53/udp -> bind
     53/tcp -> bind
+    953/tcp -> bind
     80/tcp -> url-forwarder
     8000/tcp -> BindUI
     3306/tcp -> MySQL

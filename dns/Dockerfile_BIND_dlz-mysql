@@ -44,7 +44,7 @@ COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
 COPY pkg/BIND/docker-entrypoint.sh /
 COPY pkg/BIND/config/dlz-mysql/etc/named/ ${BIND_PATH}/etc/
-COPY pkg/BIND/bind_db_connection_info.sh ${BIND_PATH}/etc/
+COPY pkg/BIND/docker_init_info.sh ${BIND_PATH}/etc/
 COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/bind_9.16.39/
 
 RUN set -eux; \
