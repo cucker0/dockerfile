@@ -1,5 +1,5 @@
 #!/bin/bash
-# BIND dlz-mysql docker-entrypoint.sh
+# BIND dlz-postgres docker-entrypoint.sh
 
 CONFIG_PATH=/etc/named/
 
@@ -7,6 +7,7 @@ CONFIG_PATH=/etc/named/
 copyConfigFile2Host() {
     if [ -d ${CONFIG_PATH} ]; then
         if [ "$(ls -A ${CONFIG_PATH})" == "" ]; then
+            sed -i "s#DB_PORT=.*#DB_PORT=5432#" /dns/origin/bind/etc/docker_init_info.sh
             cp -a /dns/origin/bind/etc/* ${CONFIG_PATH}
         fi
     fi
@@ -19,7 +20,7 @@ copyConfigFile2Host
 # 更新 /etc/named/conf/*.conf 的数据库连接信息
 updateBindConfig() {
     if [ ${UPDATE_CONFIG} != 0 ]; then
-        sed -i "s#{host=.*#{host=${DB_HOST} dbname=${DB_NAME} ssl=false port=${DB_PORT} user=${DB_USER} pass=${DB_PASSWORD}}#" /etc/named/conf.d/*.conf
+        sed -i "s#{host=.*#{host=${DB_HOST} dbname=${DB_NAME} port=${DB_PORT} user=${DB_USER} password=${DB_PASSWORD}}#" /etc/named/conf.d/*.conf
         
         # 重置为不更新配置
         sed -i 's#UPDATE_CONFIG.*#UPDATE_CONFIG=0#' /etc/named/docker_init_info.sh

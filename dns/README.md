@@ -20,7 +20,6 @@ docker run -d --name dns \
  -p 127.0.0.1:953:953/tcp \
  -p 80:80/tcp \
  -p 8000:8000/tcp \
- -p 3306:3306/tcp \
  cucker/dns:all-2.2
 
 # or
@@ -30,7 +29,6 @@ docker run -d --privileged --name dns \
  -p 127.0.0.1:953:953/tcp \
  -p 80:80/tcp \
  -p 8000:8000/tcp \
- -p 3306:3306/tcp \
  cucker/dns:all-2.1
 
 # or
@@ -41,12 +39,79 @@ docker run -d --privileged --name dns \
  -p 127.0.0.1:953:953/tcp \
  -p 80:80/tcp \
  -p 8000:8000/tcp \
- -p 3306:3306/tcp \
  cucker/dns:all-2.0
 ```
 
 ### Muilt component
+#### Storage Backend with MySQL
 * MySQL
+    ```bash
+    docker run -d --name mysql \
+     -e MYSQL_ROOT_PASSWORD=Py123456! \
+     -e MYSQL_DATABASE=dns \
+     -e MYSQL_USER=dns_wr \
+     -e MYSQL_PASSWORD=Ww123456! \
+     -p 3306:3306 \
+     mysql:8.0.32 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ```
+    
+    创建数据库只读用户（如果需要）
+    ```bash
+    $docker exec -it mysql bash
+    // 在容器中执行下列命令
+    mysql -uroot -p
+    CREATE USER 'dns_r'@'%' IDENTIFIED BY 'Rr123456!';
+    GRANT select ON dns.* TO 'dns_r'@'%';
+
+    // 刷新权限
+    flush privileges;
+    ```
+
+* url-forwarder
+    ```bash
+    # 1. run url-forwarder container
+    docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
+        
+    # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
+    # 可配置只读用户
+    
+    # 3. restart url-forwarder container
+    docker restart url-forwarder
+    ```
+
+* BindUI
+    ```bash
+    docker run -d --name BindUI \
+     --restart=always \
+     -p 8000:8000 \
+     -v /etc/dns/BindUI:/etc/BindUI \
+     cucker/dns:BindUI_2.0
+     
+    # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息。需要配置可读写的用户
+
+    # 重启容器
+    docker restart BindUI
+    ```
+
+* BIND
+```bash
+    docker run -d --name bind  \
+     --restart=always \
+     -p 53:53/udp \
+     -p 53:53/tcp \
+     -p 127.0.0.1:953:953/tcp \
+     -v /etc/dns/named:/etc/named \
+     cucker/dns:bind_dlz-mysql_2.0
+     
+    # /etc/dns/named/docker_init_info.sh.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
+    # 可配置只读用户
+
+    # 重启容器
+    docker restart bind
+    ```
+
+#### Storage Backend with PostgreSQL
+* PostgreSQL
     ```bash
     docker run -d --name mysql \
      -e MYSQL_ROOT_PASSWORD=Py123456! \
@@ -90,7 +155,7 @@ docker run -d --privileged --name dns \
      -p 53:53/tcp \
      -p 127.0.0.1:953:953/tcp \
      -v /etc/dns/named:/etc/named \
-     cucker/dns:bind_dlz-mysql_2.0
+     cucker/dns:bind_dlz-postgres_2.0
      
     # /etc/dns/named/docker_init_info.sh.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
 

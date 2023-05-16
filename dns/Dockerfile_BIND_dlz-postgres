@@ -16,21 +16,20 @@ RUN set -eux; \
 /usr/lib64\n\
 " >> /etc/ld.so.conf; \
     ldconfig; \
-    dnf -y install https://repo.mysql.com/mysql80-community-release-el9-1.noarch.rpm; \
-    # 安装最新版本MySQL; \
-    #dnf -y install mysql mysql-devel; \
-    # 如果是安装指定版本的 MySQL; \
-    dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    # postgresql yum 库; \
+    dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    #dnf -qy module disable postgresql; \
+    # 安装最新版本PostgreSQL; \
+    dnf -y install postgresql15 postgresql15-libs libpq5 libpq5-devel; \
     dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
     dnf -y install python3-ply perl-diagnostics epel-release diffutils; \
     dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
-    #dnf -y install bind-utils; \
     cd /usr/local/src/bind-9.16.39; \
     #wget https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz; \
     #tar -Jxvf bind-9.16.39.tar.xz; \
     #cd bind-9.16.39; \
-    export LDFLAGS=-L/usr/lib64/mysql; \
-    ./configure --prefix=/usr/local/bind_9.16.39 --with-dlz-mysql=yes --enable-epoll --enable-largefile; \
+    export LDFLAGS=-L/usr/pgsql-15/lib; \
+    ./configure --prefix=/usr/local/bind_9.16.39 --with-dlz-postgres=yes --enable-epoll --enable-largefile; \
     make; \
     make install;
 
@@ -42,8 +41,8 @@ ARG BIND_PATH=/usr/local/bind_9.16.39
 
 COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
-COPY pkg/BIND/docker-entrypoint.sh /
-COPY pkg/BIND/config/dlz-mysql/etc/named/ ${BIND_PATH}/etc/
+COPY pkg/BIND/docker-entrypoint2.sh /
+COPY pkg/BIND/config/dlz-postgres/etc/named/ ${BIND_PATH}/etc/
 COPY pkg/BIND/docker_init_info.sh ${BIND_PATH}/etc/
 COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/bind_9.16.39/
 
@@ -59,11 +58,11 @@ RUN set -eux; \
 /usr/lib64\n\
 " >> /etc/ld.so.conf; \
     ldconfig; \
-    dnf -y install https://repo.mysql.com/mysql80-community-release-el9-1.noarch.rpm; \
-    # 安装最新版本MySQL; \
-    #dnf -y install mysql mysql-devel; \
-    # 如果是安装指定版本的 MySQL; \
-    dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    # postgresql yum 库; \
+    dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    #dnf -qy module disable postgresql; \
+    # 安装最新版本PostgreSQL; \
+    dnf -y install postgresql15 postgresql15-libs libpq5 libpq5-devel; \
     # Install BIND; \
     dnf -y install libuv procps-ng; \
     ln -s /usr/local/bind_9.16.39 /usr/local/bind; \
@@ -77,8 +76,8 @@ RUN set -eux; \
     cp -a /usr/local/bind/etc /dns/origin/bind/; \
     mv /usr/local/bind/etc /etc/named; \
     ln -s /etc/named /usr/local/bind/etc; \
-    # docker-entrypoint.sh; \
-    chmod +x /docker-entrypoint.sh; \
+    # docker-entrypoint2.sh; \
+    chmod +x /docker-entrypoint2.sh; \
     # Clear work; \
     rm -rf /usr/local/src/*; \
     dnf clean all;
@@ -86,4 +85,4 @@ RUN set -eux; \
 VOLUME ["/etc/named"]
 EXPOSE 53/udp 53/tcp 953/tcp
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["/docker-entrypoint2.sh"]
