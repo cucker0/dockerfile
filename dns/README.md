@@ -229,8 +229,8 @@ docker run -d --privileged --name dns \
 ## Docker build
 ```bash
 cd <Dockerfile_root_path>
-chmod +x  pkg/linux/docker-entrypoint.sh
 docker build -f ./Dockerfile -t cucker/dns:all-2.0 .
+
 // or
 docker build --no-cache -f ./Dockerfile -t cucker/dns:all-2.0 .
 
