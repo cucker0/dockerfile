@@ -5,8 +5,8 @@ After=network.target mysqld.service
 [Service]
 Type=simple
 ExecStart=/usr/local/python3.11.3/bin/python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
-StandardOutput=/var/log/django.log
-StandardError=/var/log/django.log
+StandardOutput=/var/log/django/django.log
+StandardError=/var/log/django/django.log
 ExecReload=/usr/bin/kill -s HUP $MAINPID
 ExecStop=/usr/bin/kill -s QUIT $MAINPID
 Restart=always
