@@ -34,7 +34,7 @@ _main() {
     # start service
     /usr/local/bind/sbin/named -f -n 1 -u named -c /usr/local/bind/etc/named.conf
     if [ $? != 0 ]; then
-        echo "$(date +"%Y%m%d %H:%M:%S")  named服务启动失败。可能是数据库连接信正确！"
+        echo "$(date +"%Y%m%d %H:%M:%S")  named服务启动失败。可能是数据库连接信息不正确！"
     fi
     # 如果用户传了参数，则执行用户传的参数命令
     exec "$@"
