@@ -3,6 +3,7 @@
 
 CONFIG_PATH=/etc/BindUI/
 BindUI_SETTINGS=/data/webroot/BindUI/bindUI/settings.py
+PYTHON_PATH=/usr/local/python3.11.3
 
 # 如果 docker run -v 映射卷时，主机目录为空，则复制原始的配置到主机上
 copyConfigFile2Host() {
@@ -58,10 +59,10 @@ updateBindUiConfig() {
 initDatabase() {
     if [ ${INIT_DATABASE} != 0 ]; then
         cd /data/webroot/BindUI
-        python3 manage.py migrate
-        python3 manage.py makemigrations
-        python3 manage.py migrate
-        echo "from django.contrib.auth.models import User; User.objects.create_superuser('$DJANGO_SUPERUSER_NAME', '$DJANGO_SUPERUSER_EMAIL', '$DJANGO_SUPERUSER_PASSWORD')" | python3 ./manage.py shell
+        ${PYTHON_PATH}/bin/python3 manage.py migrate
+        ${PYTHON_PATH}/bin/python3 manage.py makemigrations
+        ${PYTHON_PATH}/bin/python3 manage.py migrate
+        echo "from django.contrib.auth.models import User; User.objects.create_superuser('$DJANGO_SUPERUSER_NAME', '$DJANGO_SUPERUSER_EMAIL', '$DJANGO_SUPERUSER_PASSWORD')" | ${PYTHON_PATH}/bin/python3 ./manage.py shell
         
         # 重置为禁止初始化
         sed -i s'#INIT_DATABASE.*#INIT_DATABASE=0#' /etc/BindUI/docker_init_info.sh
@@ -74,8 +75,7 @@ _main() {
     initDatabase
     
     # start service
-    #/usr/local/python3.11.3/bin/python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
-    python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
+    ${PYTHON_PATH}/bin/python3 /data/webroot/BindUI/manage.py runserver 0.0.0.0:8000
     
     # 如果用户传了参数，则执行用户传的参数命令
     exec "$@"

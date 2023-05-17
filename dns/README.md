@@ -54,6 +54,7 @@ docker run -d --privileged --name dns \
      -p 3306:3306 \
      mysql:8.0.32 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     ```
+    新建数据库 dns，新建用户该库的超级用户 dns_wr，密码为 Ww123456!
     
     创建数据库只读用户（如果需要）
     ```bash
@@ -76,7 +77,7 @@ docker run -d --privileged --name dns \
     # 可配置只读用户
     
     # 3. restart url-forwarder container
-    docker restart url-forwarder
+    docker restart --time 0 url-forwarder
     ```
 
 * BindUI
@@ -90,7 +91,7 @@ docker run -d --privileged --name dns \
     # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息。需要配置可读写的用户
 
     # 重启容器
-    docker restart BindUI
+    docker restart --time 0 BindUI
     ```
 
 * BIND
@@ -107,19 +108,47 @@ docker run -d --privileged --name dns \
     # 可配置只读用户
 
     # 重启容器
-    docker restart bind
+    docker restart --time 0 bind
     ```
 
 #### Storage Backend with PostgreSQL
 * PostgreSQL
     ```bash
-    docker run -d --name mysql \
-     -e MYSQL_ROOT_PASSWORD=Py123456! \
-     -e MYSQL_DATABASE=dns \
-     -e MYSQL_USER=dns_wr \
-     -e MYSQL_PASSWORD=Ww123456! \
-     -p 3306:3306 \
-     mysql:8.0.32 --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    docker run -d --name postgresql \
+     -e POSTGRES_DB=dns \
+     -e POSTGRES_USER=dns_wr \
+     -e POSTGRES_PASSWORD=Ww123456! \
+     -e POSTGRES_HOST_AUTH_METHOD=scram-sha-256 \
+     -v /data/postgresql/data:/var/lib/postgresql/data \
+     -p 5432:5432 \
+     postgres:15.2
+    ```
+    新建数据库 dns，新建用户该库的超级用户(OWNER) dns_wr，密码为 Ww123456!
+    
+    如果需要创建只读用户，等 BindUI 初始化数据库后，再创建。
+    ```bash
+    docker exec -it postgresql bash
+    # 在容器中执行下列命令
+    psql -h 127.0.0.1 -p 5432 -U dns_wr -d dns
+    // 创建只读用
+    CREATE USER dns_r WITH ENCRYPTED PASSWORD 'Rr123456!';
+
+    // 如果 Django migrate 生成表后，没有 select 权限，请再次执行下面的几条授权语句。
+    -- 设置默认事务只读
+    ALTER USER dns_r SET default_transaction_read_only=on;
+    -- 赋予用户连接数据库bind_ui的权限
+    GRANT CONNECT ON DATABASE dns TO dns_r;
+    -- 切换到指定库bind_ui
+    \c dns
+
+    --schema public 所有表的指定权限授权给指定的用户
+    GRANT USAGE ON SCHEMA public TO dns_r;
+    -- schema public 以后新建的表的指定权限赋予给指定的用户
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO dns_r;
+    -- schema public 的所有SEQUENCES(序列)的指定权限授权给指定的用户
+    GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO dns_r;
+    -- schema public 下的表的select权限授权给指定用户 
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO dns_r; 
     ```
 
 * url-forwarder
@@ -130,7 +159,7 @@ docker run -d --privileged --name dns \
     # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
     
     # 3. restart url-forwarder container
-    docker restart url-forwarder
+    docker restart --time 0 url-forwarder
     ```
 
 * BindUI
@@ -144,7 +173,7 @@ docker run -d --privileged --name dns \
     # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息
 
     # 重启容器
-    docker restart BindUI
+    docker restart --time 0 BindUI
     ```
 
 * BIND
@@ -160,7 +189,7 @@ docker run -d --privileged --name dns \
     # /etc/dns/named/docker_init_info.sh.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
 
     # 重启容器
-    docker restart bind
+    docker restart --time 0 bind
     ```
 
 ## System Information
@@ -207,4 +236,7 @@ docker build --no-cache -f ./Dockerfile -t cucker/dns:all-2.0 .
 
 # or 
 docker build -f ./Dockerfile_2.1 -t cucker/dns:all-2.1 .
+
+
+docker build -f ./Dockerfile_BindUI -t cucker/dns:BindUI_2.0 .
 ```

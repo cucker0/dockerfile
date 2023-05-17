@@ -1,17 +1,72 @@
-FROM python:3.9.6-alpine3.14
+# builder_python
+FROM rockylinux:9.1 AS builder_python
+ARG PYTHON_PATH=/usr/local/python3.11.3
+ADD pkg/python/Python-3.11.3.tar.xz /usr/local/src/
+ADD pkg/BindUI/requirements.txt /usr/local/src/
+COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
+COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
+
+RUN set -eux; \
+    dnf clean all; \
+    dnf makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Install Python; \
+    dnf -y install zlib zlib-devel; \
+    dnf -y install bzip2 bzip2-devel; \
+    dnf -y install ncurses ncurses-devel; \
+    dnf -y install readline readline-devel; \
+    dnf -y install openssl openssl-devel; \
+    dnf -y --skip-broken install openssl-static; \
+    dnf -y install xz lzma xz-devel; \
+    dnf -y install sqlite sqlite-devel; \
+    dnf -y install gdbm gdbm-devel; \
+    dnf -y install tk tk-devel; \
+    dnf -y install libffi libffi-devel; \
+    dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
+    cd /usr/local/src; \
+    #wget https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz; \
+    #tar -Jxvf Python-3.11.3.tar.xz; \
+    cd Python-3.11.3/; \
+    ./configure --prefix=/usr/local/python3.11.3 --enable-shared CFLAGS=-fPIC; \
+    make; \
+    make install; \
+    echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
+    ldconfig; \
+    ${PYTHON_PATH}/bin/python3 -m pip install --upgrade pip; \
+    ${PYTHON_PATH}/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements.txt;
+
+# origin
+FROM rockylinux:9.1
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 ADD pkg/BindUI/requirements.txt /usr/local/src/
 ADD pkg/BindUI.tar.gz /data/webroot/
 COPY pkg/BindUI/docker-entrypoint.sh /
 COPY pkg/BindUI/docker_init_info.sh /etc/BindUI/
+COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
 
 RUN set -eux; \
-    pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements.txt; \
+    # Install Python; \
+    echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Install libpq;\
+    dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-9-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    dnf -y install libpq5 libpq5-devel; \
     mkdir -p /dns/origin/BindUI/; \
     cp -a /etc/BindUI/* /dns/origin/BindUI/; \
     # docker-entrypoint.sh; \
-    chmod +x /docker-entrypoint.sh; 
+    chmod +x /docker-entrypoint.sh; \
+    # Clear work; \
+    rm -rf /usr/local/src/*; \
+    dnf clean all;
     
 VOLUME ["/etc/BindUI"]
 EXPOSE 8000/tcp
