@@ -203,7 +203,7 @@ docker run -d --privileged --name dns \
     docker restart dns-proxy
     ```
 
-## System Information
+## All in One System Information
 * BindUI Account Info
     ```
     url：http://<IP_MAP>:8000
