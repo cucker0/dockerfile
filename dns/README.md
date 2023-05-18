@@ -5,9 +5,16 @@
 这是一款基于BIND和WEB的智能DNS域名管理系。使用BIND + DLZ + MySQL/PostgreSQL + Django + Spring Boot技术进行开发，支持常用的DNS记录类型，并额外扩展了支持HTTP URL转发的显性URL、隐性URL记录。系统降低了域名管理的管理和使用成本，成为一款易用的企业级域名管理系统。
 
 ## Supported tags and respective `Dockerfile` links
-* [`all-2.2`, `latest`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
-* [`all-2.1`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
-* [`all-2.0`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
+* All in One
+    * [`all-2.2`, `latest`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
+    * [`all-2.1`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
+    * [`all-2.0`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
+* Muilt components
+    * [`bind_dlz-mysql_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-mysql)
+    * [`bind_dlz-postgres_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres)
+    * [`BindUI_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI)
+    * [`url-forwarder_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_url-forwarder)
+    * [`dns_nginx_proxy_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_DNS_nginx_proxy)
 
 ## How to use this image
 
@@ -42,7 +49,7 @@ docker run -d --privileged --name dns \
  cucker/dns:all-2.0
 ```
 
-### Muilt component
+### Muilt components
 #### Storage Backend with MySQL
 * MySQL
     ```bash
@@ -110,6 +117,30 @@ docker run -d --privileged --name dns \
     # 重启容器
     docker restart --time 0 bind
     ```
+
+* BIND nginx proxy
+```bash
+docker run -d --name dns-proxy \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -v /etc/dns/nginx:/etc/nginx \
+ cucker/dns:bind_nginx_proxy_2.0
+ 
+# 修改 /etc/nginx/stream.d/dns.conf
+# 添加 或 删除 upstream 中的 server 节点
+# 示例：
+upstream dns_upstream {
+    zone dns_du 64k;
+    least_conn;
+    server 10.100.240.133:53 weight=10 max_fails=2 fail_timeout=30s;
+    server 10.100.240.134:53 weight=10 max_fails=2 fail_timeout=30s;
+    #check interval=3000 rise=2 fall=3 timeout=3000 default_down=true type=udp;
+}
+
+# 重启容器
+docker restart dns-proxy
+```
 
 #### Storage Backend with PostgreSQL
 * PostgreSQL

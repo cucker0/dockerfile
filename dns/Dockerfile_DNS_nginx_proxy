@@ -1,0 +1,17 @@
+FROM nginx:1.24.0
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+COPY pkg/DNS_nginx_proxy/etc/nginx/* /etc/nginx/
+
+RUN set -eux; \
+    mkdir -p /dns/origin/nginx/etc; \
+    cp -a /etc/nginx /dns/origin/nginx/etc/; \
+    # docker-entrypoint.sh; \
+    chmod +x /docker-entrypoint.sh;
+
+VOLUME ["/etc/nginx", "/var/log/nginx"]
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+EXPOSE 53/udp 53/tcp
+STOPSIGNAL SIGQUIT
+CMD ["nginx", "-g", "daemon off;"]
