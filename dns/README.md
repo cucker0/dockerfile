@@ -49,7 +49,8 @@ docker run -d --privileged --name dns \
  cucker/dns:all-2.0
 ```
 
-### Muilt components
+### Muilt Components
+
 #### Storage Backend with MySQL
 * MySQL
     ```bash
@@ -75,34 +76,8 @@ docker run -d --privileged --name dns \
     flush privileges;
     ```
 
-* url-forwarder
-    ```bash
-    # 1. run url-forwarder container
-    docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
-        
-    # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
-    # 可配置只读用户
-    
-    # 3. restart url-forwarder container
-    docker restart --time 0 url-forwarder
-    ```
-
-* BindUI
-    ```bash
-    docker run -d --name BindUI \
-     --restart=always \
-     -p 8000:8000 \
-     -v /etc/dns/BindUI:/etc/BindUI \
-     cucker/dns:BindUI_2.0
-     
-    # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息。需要配置可读写的用户
-
-    # 重启容器
-    docker restart --time 0 BindUI
-    ```
-
 * BIND
-```bash
+    ```bash
     docker run -d --name bind  \
      --restart=always \
      -p 53:53/udp \
@@ -117,31 +92,6 @@ docker run -d --privileged --name dns \
     # 重启容器
     docker restart --time 0 bind
     ```
-
-* BIND nginx proxy
-```bash
-docker run -d --name dns-proxy \
- --restart=always \
- -p 53:53/udp \
- -p 53:53/tcp \
- -v /etc/dns/nginx:/etc/nginx \
- cucker/dns:bind_nginx_proxy_2.0
- 
-# 修改 /etc/nginx/stream.d/dns.conf
-# 添加 或 删除 upstream 中的 server 节点
-# 示例：
-upstream dns_upstream {
-    zone dns_du 64k;
-    least_conn;
-    server 10.100.240.133:53 weight=10 max_fails=2 fail_timeout=30s;
-    server 10.100.240.134:53 weight=10 max_fails=2 fail_timeout=30s;
-    #check interval=3000 rise=2 fall=3 timeout=3000 default_down=true type=udp;
-}
-
-# 重启容器
-docker restart dns-proxy
-```
-
 #### Storage Backend with PostgreSQL
 * PostgreSQL
     ```bash
@@ -181,34 +131,9 @@ docker restart dns-proxy
     -- schema public 下的表的select权限授权给指定用户 
     GRANT SELECT ON ALL TABLES IN SCHEMA public TO dns_r; 
     ```
-
-* url-forwarder
-    ```bash
-    # 1. run url-forwarder container
-    docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
-        
-    # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
     
-    # 3. restart url-forwarder container
-    docker restart --time 0 url-forwarder
-    ```
-
-* BindUI
-    ```bash
-    docker run -d --name BindUI \
-     --restart=always \
-     -p 8000:8000 \
-     -v /etc/dns/BindUI:/etc/BindUI \
-     cucker/dns:BindUI_2.0
-     
-    # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息
-
-    # 重启容器
-    docker restart --time 0 BindUI
-    ```
-
 * BIND
-```bash
+    ```bash
     docker run -d --name bind  \
      --restart=always \
      -p 53:53/udp \
@@ -221,6 +146,61 @@ docker restart dns-proxy
 
     # 重启容器
     docker restart --time 0 bind
+    ```
+
+#### Common Components (MySQL and PostgreSQL Storage Backend)
+
+* BindUI
+    ```bash
+    docker run -d --name BindUI \
+     --restart=always \
+     -p 8000:8000 \
+     -v /etc/dns/BindUI:/etc/BindUI \
+     cucker/dns:BindUI_2.0
+     
+    # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息。需要配置可读写的用户
+
+    # 重启容器
+    docker restart --time 0 BindUI
+    ```
+
+* url-forwarder
+    ```bash
+    # 1. run url-forwarder container
+    docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
+        
+    # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
+    # 可配置只读用户
+    
+    # 3. restart url-forwarder container
+    docker restart --time 0 url-forwarder
+    ```
+    
+* DNS nginx proxy
+    ```bash
+    docker run -d --name dns-proxy \
+     --restart=always \
+     -p 53:53/udp \
+     -p 53:53/tcp \
+     -v /etc/dns/nginx:/etc/nginx \
+     cucker/dns:dns_nginx_proxy_2.0
+     
+    # 修改 /etc/nginx/stream.d/dns.conf
+    # 添加 或 删除 upstream 中的 server 节点
+    # 示例：
+    upstream dns_upstream {
+        zone dns_du 64k;
+        least_conn;
+        server 10.100.240.133:53 weight=10 max_fails=2 fail_timeout=30s;
+        server 10.100.240.134:53 weight=10 max_fails=2 fail_timeout=30s;
+        server 10.100.240.134:54 weight=10 max_fails=2 fail_timeout=30s;
+        server 10.100.240.134:55 weight=10 max_fails=2 fail_timeout=30s;
+        #check interval=3000 rise=2 fall=3 timeout=3000 default_down=true type=udp;
+    }
+    ...
+
+    # 重启容器
+    docker restart dns-proxy
     ```
 
 ## System Information
@@ -268,6 +248,7 @@ docker build --no-cache -f ./Dockerfile -t cucker/dns:all-2.0 .
 # or 
 docker build -f ./Dockerfile_2.1 -t cucker/dns:all-2.1 .
 
-
 docker build -f ./Dockerfile_BindUI -t cucker/dns:BindUI_2.0 .
+
+docker build -f ./Dockerfile_DNS_nginx_proxy -t cucker/dns:dns_nginx_proxy_2.0 .
 ```

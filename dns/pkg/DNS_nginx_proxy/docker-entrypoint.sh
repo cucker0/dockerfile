@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # vim:sw=4:ts=4:et
 
 CONFIG_PATH=/etc/nginx/
@@ -7,7 +7,7 @@ CONFIG_PATH=/etc/nginx/
 copyConfigFile2Host() {
     if [ -d ${CONFIG_PATH} ]; then
         if [ "$(ls -A ${CONFIG_PATH})" == "" ]; then
-            cp -a /dns/origin/nginx/etc/nginx/* ${CONFIG_PATH}
+            cp -a /origin/nginx/etc/nginx/* ${CONFIG_PATH}
         fi
     fi
 }

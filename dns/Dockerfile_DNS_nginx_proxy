@@ -1,11 +1,12 @@
 FROM nginx:1.24.0
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
-COPY pkg/DNS_nginx_proxy/etc/nginx/* /etc/nginx/
+COPY pkg/DNS_nginx_proxy/etc/nginx/ /etc/nginx/
+COPY pkg/DNS_nginx_proxy/docker-entrypoint.sh /
 
 RUN set -eux; \
-    mkdir -p /dns/origin/nginx/etc; \
-    cp -a /etc/nginx /dns/origin/nginx/etc/; \
+    mkdir -p /origin/nginx/etc; \
+    cp -a /etc/nginx /origin/nginx/etc/; \
     # docker-entrypoint.sh; \
     chmod +x /docker-entrypoint.sh;
 
