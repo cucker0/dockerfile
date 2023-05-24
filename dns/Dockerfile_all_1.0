@@ -1,0 +1,239 @@
+# builder_python
+FROM centos:7.6.1810 AS builder_python
+ARG PYTHON_PATH=/usr/local/python3.11.3
+ADD pkg/python/Python-3.11.3.tar.xz /usr/local/src/
+ADD pkg/BindUI/requirements.txt /usr/local/src/
+
+RUN set -eux; \
+    #yum clean all; \
+    #yum makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Aliyun Mirror; \
+    minorver=7.6.1810; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-*.repo; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
+    yum makecache; \
+    yum -y install wget epel-release centos-release-scl; \
+    # Install Python; \
+    yum -y install zlib zlib-devel; \
+    yum -y install bzip2 bzip2-devel; \
+    yum -y install ncurses ncurses-devel; \
+    yum -y install readline readline-devel; \
+    yum -y install openssl openssl-devel; \
+    yum -y install openssl11 openssl11-devel; \
+    yum -y --skip-broken install openssl-static; \
+    yum -y install xz lzma xz-devel; \
+    yum -y install sqlite sqlite-devel; \
+    yum -y install gdbm gdbm-devel; \
+    yum -y install tk tk-devel; \
+    yum -y install libffi libffi-devel; \
+    yum -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
+    cd /usr/local/src; \
+    #wget https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz; \
+    #tar -Jxvf Python-3.11.3.tar.xz; \
+    cd Python-3.11.3/; \
+    export CFLAGS=$(pkg-config --cflags openssl11); \
+    export LDFLAGS=$(pkg-config --libs openssl11); \
+    ./configure --prefix=/usr/local/python3.11.3 --enable-shared --with-ssl; \
+    make; \
+    make install; \
+    echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
+    ldconfig; \
+    ${PYTHON_PATH}/bin/python3 -m pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/; \
+    ${PYTHON_PATH}/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements.txt;
+
+
+# builder_bind
+FROM centos:7.6.1810 AS builder_bind
+ADD pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
+
+RUN set -eux; \
+    #yum clean all; \
+    #yum makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Aliyun Mirror; \
+    minorver=7.6.1810; \
+    minorver=7.6.1810; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-*.repo; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
+    yum makecache; \
+    yum -y install wget epel-release centos-release-scl; \
+    # 安装PostgreSQL; \
+    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    yum -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
+    yum -y install python3-ply perl-diagnostics epel-release diffutils; \
+    yum -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
+    yum -y install openssl openssl-devel; \
+    yum -y install openssl11 openssl11-devel; \
+    echo -e "\n\n## PATH \nexport PATH=$PATH:/usr/pgsql-11/bin" >> /etc/profile.d/env.sh; \
+    . /etc/profile.d/env.sh; \
+    cd /usr/local/src/bind-9.12.1; \
+    export LDFLAGS=-L/usr/pgsql-11/lib; \
+    ./configure --prefix=/usr/local/bind_9.12.1 --with-dlz-postgres=yes --enable-epoll --enable-largefile; \
+    make; \
+    make install;
+
+
+# origin
+FROM centos:7.6.1810
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+ARG PYTHON_PATH=/usr/local/python3.11.3
+ARG BIND_PATH=/usr/local/bind_9.12.1
+ARG PGDATA=/var/lib/pgsql/11/data/
+ENV DJANGO_SUPERUSER_NAME=admin
+ENV DJANGO_SUPERUSER_EMAIL=admin@my.com
+ENV DJANGO_SUPERUSER_PASSWORD=Dns123456!
+ADD pkg/BindUI.tar.gz /data/webroot/
+COPY pkg/url-forwarder/* /data/software/url-forwarder/
+COPY pkg/BIND/config/dlz-postgres/etc/named/ ${BIND_PATH}/etc/
+COPY pkg/PostgreSQL/* /pkg/PostgreSQL/
+#COPY pkg/linux/bindui.service /etc/systemd/system/
+#COPY pkg/linux/docker-entrypoint.sh /usr/local/bin/
+#ADD https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz /usr/local/src/
+#ADD https://downloads.isc.org/isc/bind9/9.12.1/bind-9.12.1.tar.gz /usr/local/src/
+#ADD https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz /usr/local/src/
+ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
+#COPY pkg/python/Python-3.11.3.tar.xz /usr/local/src/
+#COPY pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
+COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
+COPY --from=builder_bind /usr/local/bind_9.12.1 /usr/local/bind_9.12.1/
+
+
+RUN set -eux; \
+    #yum clean all; \
+    #yum makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Aliyun Mirror; \
+    #yum -y install https://mirrors.aliyun.com/centos-vault/7.6.1810/os/x86_64/Packages/wget-1.14-18.el7.x86_64.rpm; \
+    #yum -y install https://mirrors.aliyun.com/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm; \
+    minorver=7.6.1810; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-*.repo; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
+    yum makecache; \
+    yum -y install wget epel-release centos-release-scl sudo; \
+    # 安装PostgreSQL; \
+    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    yum install -y postgresql11-server-11.3 postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    #sed -i '84,86c\PGDATA=/var/lib/pgsql/11/data/' /usr/pgsql-11/bin/postgresql-11-setup; \
+    sed -i 's#systemctl show -p Environment "${SERVICE_NAME}.service"#echo "Environment=PGDATA=/var/lib/pgsql/11/data/"#' /usr/pgsql-11/bin/postgresql-11-setup; \
+    /usr/pgsql-11/bin/postgresql-11-setup initdb; \
+    sed -i "s/^#listen_addresses =.*/listen_addresses = '*'/" /var/lib/pgsql/11/data/postgresql.conf; \
+    sed -i "s/^#port =.*/port = 5432/" /var/lib/pgsql/11/data/postgresql.conf; \
+    echo "host    all             all             127.0.0.1/32            scram-sha-256" >> /var/lib/pgsql/11/data/pg_hba.conf; \
+    echo "host    all             all             0.0.0.0/0               scram-sha-256" >> /var/lib/pgsql/11/data/pg_hba.conf; \
+    echo -e "\n\n## PATH \nexport PATH=$PATH:/usr/pgsql-11/bin" >> /etc/profile.d/env.sh; \
+    . /etc/profile.d/env.sh; \
+    su -l postgres -c "/usr/pgsql-11/bin/postmaster -D ${PGDATA} &"; \
+    # systemctl enable postgresql-11; \
+    # systemctl start postgresql-11; \
+    sudo -u postgres psql -U postgres -f /pkg/PostgreSQL/create_db_and_owner.sql; \
+    # Install Python; \
+    yum -y install openssl openssl-devel; \
+    yum -y install openssl11 openssl11-devel; \
+    echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Deploy BindUI; \
+    cd /data/webroot/BindUI; \
+    rm -rf ./bindUI/settings.py; \
+    mv ./bindUI/settings_pg.py ./bindUI/settings.py; \
+    ${PYTHON_PATH}/bin/python3 manage.py migrate; \
+    ${PYTHON_PATH}/bin/python3 manage.py makemigrations; \
+    ${PYTHON_PATH}/bin/python3 manage.py migrate; \
+    echo "from django.contrib.auth.models import User; User.objects.create_superuser('$DJANGO_SUPERUSER_NAME', '$DJANGO_SUPERUSER_EMAIL', '$DJANGO_SUPERUSER_PASSWORD')" | ${PYTHON_PATH}/bin/python3 ./manage.py shell; \
+    # PostgreSQL Create Readonly user; \
+    sudo -u postgres psql -d dns -U postgres -f /pkg/PostgreSQL/create_readonly_user.sql; \
+    #systemctl enable bindui; \
+    # Install JDK; \
+    #cd /usr/local/src; \
+    #wget https://download.oracle.com/java/17/archive/jdk-17.0.6_linux-x64_bin.tar.gz; \
+    #mkdir -p /usr/local/java; \
+    #tar -xvf jdk-17.0.6_linux-x64_bin.tar.gz -C /usr/local/java/; \ 
+    cd /usr/local/java; \
+    ln -s jdk-17.0.6 jdk; \
+    # 设置JDK系统环境变量; \
+    echo -e '\n\
+## JAVA\n\
+export JAVA_HOME=/usr/local/java/jdk\n\
+export CLASSPATH=.:$JAVA_HOME/lib/dt.jar:$JAVA_HOME/lib/tools.jar\n\
+\n\
+## PATH\n\
+export PATH=$PATH:$JAVA_HOME/bin\n\
+'>> /etc/profile; \
+    # Deploy url-forwarder; \
+    cd /data/software/url-forwarder; \
+    rm -rf ./application.yml; \
+    mv ./application_pg.yml ./application.yml; \
+    # Install BIND; \
+    yum -y install libuv; \
+    ln -s /usr/local/bind_9.12.1 /usr/local/bind; \
+    ln -s /usr/local/bind/etc /etc/named; \
+    ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
+    ln -s /usr/local/bind/bin/dig /usr/bin/; \
+    groupadd -g 25 named; \
+    useradd named -M -u 25 -g 25 -s /sbin/nologin; \
+    mkdir -p /usr/local/bind/var; chown -R named:named /usr/local/bind/var; \
+    mkdir -p /var/log/named /usr/local/bind/etc/conf.d; chown -R named.named /var/log/named; \
+    
+    #systemctl enable named; \
+    # Clear work; \
+    rm -rf /usr/local/src/*; \
+    yum clean all;
+    
+ADD pkg/linux/server-start2.sh /
+ADD pkg/linux/dumb-init_1.2.5_x86_64 /usr/bin/
+RUN set -eux; \
+    # Install dumb-init; \
+    #wget -O /usr/bin/dumb-init https://github.com/Yelp/dumb-init/releases/download/v1.2.5/dumb-init_1.2.5_x86_64; \
+    mv /usr/bin/dumb-init_1.2.5_x86_64 /usr/bin/dumb-init; \
+    chmod +x /usr/bin/dumb-init; \
+    chmod +x /server-start2.sh; \
+    systemctl disable postgresql-11; 
+
+## error:
+# #0 87.87 + /usr/pgsql-11/bin/postgresql-11-setup initdb
+#0 87.89 Failed to get D-Bus connection: Operation not permitted
+#0 87.89 failed to find PGDATA setting in postgresql-11.service
+
+VOLUME ["/var/lib/pgsql/11/data", "/var/log/named", "/data/logs/url-forwarder", "/var/log/django"]
+EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 5432/tcp
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/server-start2.sh", "--with", "--args"]
