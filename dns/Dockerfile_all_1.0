@@ -51,9 +51,7 @@ RUN set -eux; \
     make install; \
     echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
     ldconfig; \
-    ${PYTHON_PATH}/bin/python3 -m pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/; \
-    ${PYTHON_PATH}/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements.txt;
-
+    ${PYTHON_PATH}/bin/python3 -m pip install --upgrade pip -i https://mirrors.aliyun.com/pypi/simple/; 
 
 # builder_bind
 FROM centos:7.6.1810 AS builder_bind
@@ -123,6 +121,7 @@ ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
 #COPY pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
 COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
 COPY --from=builder_bind /usr/local/bind_9.12.1 /usr/local/bind_9.12.1/
+ADD pkg/BindUI/requirements_PostgreSQL-11.txt /usr/local/src/
 
 
 RUN set -eux; \
@@ -157,6 +156,8 @@ RUN set -eux; \
     /usr/pgsql-11/bin/postgresql-11-setup initdb; \
     sed -i "s/^#listen_addresses =.*/listen_addresses = '*'/" /var/lib/pgsql/11/data/postgresql.conf; \
     sed -i "s/^#port =.*/port = 5432/" /var/lib/pgsql/11/data/postgresql.conf; \
+    sed -i "s/#password_encryption = md5/password_encryption = 'scram-sha-256'/" /var/lib/pgsql/11/data/postgresql.conf; \
+    sed -i 's/^host[ ]*all[ ]*all[ ]*127.0.0.1/#&/' /var/lib/pgsql/11/data/pg_hba.conf; \
     echo "host    all             all             127.0.0.1/32            scram-sha-256" >> /var/lib/pgsql/11/data/pg_hba.conf; \
     echo "host    all             all             0.0.0.0/0               scram-sha-256" >> /var/lib/pgsql/11/data/pg_hba.conf; \
     echo -e "\n\n## PATH \nexport PATH=$PATH:/usr/pgsql-11/bin" >> /etc/profile.d/env.sh; \
@@ -164,12 +165,16 @@ RUN set -eux; \
     su -l postgres -c "/usr/pgsql-11/bin/postmaster -D ${PGDATA} &"; \
     # systemctl enable postgresql-11; \
     # systemctl start postgresql-11; \
+    sleep 5; \
     sudo -u postgres psql -U postgres -f /pkg/PostgreSQL/create_db_and_owner.sql; \
     # Install Python; \
     yum -y install openssl openssl-devel; \
     yum -y install openssl11 openssl11-devel; \
     echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
     ldconfig; \
+    # Python; \
+    yum -y install make gcc gcc-c++; \
+    /usr/local/python3.11.3/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements_PostgreSQL-11.txt; \
     # Deploy BindUI; \
     cd /data/webroot/BindUI; \
     rm -rf ./bindUI/settings.py; \
@@ -215,6 +220,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     #systemctl enable named; \
     # Clear work; \
     rm -rf /usr/local/src/*; \
+    yum -y remove make gcc gcc-c++; \
     yum clean all;
     
 ADD pkg/linux/server-start2.sh /
