@@ -55,7 +55,7 @@ RUN set -eux; \
 
 # builder_bind
 FROM centos:7.6.1810 AS builder_bind
-ADD pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
+ADD pkg/BIND/bind-9.12.4.tar.gz /usr/local/src/
 
 RUN set -eux; \
     #yum clean all; \
@@ -90,9 +90,9 @@ RUN set -eux; \
     yum -y install openssl11 openssl11-devel; \
     echo -e "\n\n## PATH \nexport PATH=$PATH:/usr/pgsql-11/bin" >> /etc/profile.d/env.sh; \
     . /etc/profile.d/env.sh; \
-    cd /usr/local/src/bind-9.12.1; \
+    cd /usr/local/src/bind-9.12.4; \
     export LDFLAGS=-L/usr/pgsql-11/lib; \
-    ./configure --prefix=/usr/local/bind_9.12.1 --with-dlz-postgres=yes --enable-threads --enable-epoll --enable-largefile; \
+    ./configure --prefix=/usr/local/bind_9.12.4 --with-dlz-postgres=yes --enable-threads --enable-epoll --enable-largefile; \
     make; \
     make install;
 
@@ -102,7 +102,7 @@ FROM centos:7.6.1810
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 ARG PYTHON_PATH=/usr/local/python3.11.3
-ARG BIND_PATH=/usr/local/bind_9.12.1
+ARG BIND_PATH=/usr/local/bind_9.12.4
 ARG PGDATA=/var/lib/pgsql/11/data/
 ENV DJANGO_SUPERUSER_NAME=admin
 ENV DJANGO_SUPERUSER_EMAIL=admin@my.com
@@ -114,13 +114,13 @@ COPY pkg/PostgreSQL/* /pkg/PostgreSQL/
 #COPY pkg/linux/bindui.service /etc/systemd/system/
 #COPY pkg/linux/docker-entrypoint.sh /usr/local/bin/
 #ADD https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz /usr/local/src/
-#ADD https://downloads.isc.org/isc/bind9/9.12.1/bind-9.12.1.tar.gz /usr/local/src/
+#ADD https://downloads.isc.org/isc/bind9/9.12.4/bind-9.12.4.tar.gz /usr/local/src/
 #ADD https://www.python.org/ftp/python/3.11.3/Python-3.11.3.tar.xz /usr/local/src/
 ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
 #COPY pkg/python/Python-3.11.3.tar.xz /usr/local/src/
-#COPY pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
+#COPY pkg/BIND/bind-9.12.4.tar.gz /usr/local/src/
 COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
-COPY --from=builder_bind /usr/local/bind_9.12.1 /usr/local/bind_9.12.1/
+COPY --from=builder_bind /usr/local/bind_9.12.4 /usr/local/bind_9.12.4/
 ADD pkg/BindUI/requirements_PostgreSQL-11.txt /usr/local/src/
 
 
@@ -208,7 +208,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     mv ./application_pg.yml ./application.yml; \
     # Install BIND; \
     yum -y install libuv; \
-    ln -s /usr/local/bind_9.12.1 /usr/local/bind; \
+    ln -s /usr/local/bind_9.12.4 /usr/local/bind; \
     ln -s /usr/local/bind/etc /etc/named; \
     ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
     ln -s /usr/local/bind/bin/dig /usr/bin/; \

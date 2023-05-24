@@ -9,6 +9,8 @@
     * [`all-2.2`, `latest`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
     * [`all-2.1`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
     * [`all-2.0`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
+    * [`all-1.0`, `BIND_9.12.1`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_all_1.0)
+    * [`all-1.1`, `BIND_9.12.4`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_all_1.1)
 * Muilt components
     * [`bind_dlz-mysql_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-mysql)
     * [`bind_dlz-postgres_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres)
@@ -20,6 +22,26 @@
 
 ### All in One
 ```bash
+docker run -d --name dns \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -p 80:80/tcp \
+ -p 8000:8000/tcp \
+ cucker/dns:all-1.0
+
+# or
+docker run -d --name dns \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -p 80:80/tcp \
+ -p 8000:8000/tcp \
+ cucker/dns:all-1.1
+
+# or
 docker run -d --name dns \
  --restart=always \
  -p 53:53/udp \
