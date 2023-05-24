@@ -4,7 +4,7 @@
 # start PostgreSQL
 PGDATA=/var/lib/pgsql/11/data/
 /usr/pgsql-11/bin/postgresql-11-check-db-dir ${PGDATA}
-/usr/pgsql-11/bin/postmaster -D ${PGDATA}
+su -l postgres -c "/usr/pgsql-11/bin/postmaster -D ${PGDATA} &"; 
 # start url-forwarder
 LOG_PATH=/data/logs/url-forwarder;
 /usr/bin/bash -c "if [ ! -d ${LOG_PATH} ]; then mkdir -p ${LOG_PATH}; fi; /bin/sleep 2";
@@ -17,7 +17,8 @@ LOG_PATH=/data/logs/url-forwarder;
   -jar /data/software/url-forwarder/url-forwarder-0.0.1-SNAPSHOT.jar \
   --spring.config.additional-location=/data/software/url-forwarder/application.yml &
 # start named (bind)
-/usr/local/bind/sbin/named -n 1 -u named -c /usr/local/bind/etc/named.conf
+CORE_NUM=$(cat /proc/cpuinfo |grep processor |wc -l)
+/usr/local/bind/sbin/named -n ${CORE_NUM} -u named -c /usr/local/bind/etc/named.conf
 
 ## At the end, launch another process in the foreground
 # start BindUI
