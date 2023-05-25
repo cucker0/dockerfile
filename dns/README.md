@@ -6,17 +6,20 @@
 
 ## Supported tags and respective `Dockerfile` links
 * All in One
-    * [`all-2.2`, `latest`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
-    * [`all-2.1`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
-    * [`all-2.0`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
-    * [`all-1.0`, `BIND_9.12.1`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_all_1.0)
-    * [`all-1.1`, `BIND_9.12.4`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_all_1.1)
+    * [`all-1.0`, `latest`, `BIND_9.12.1, PostgreSQL 11.3`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_all_1.0)
+    * [`all-1.1`, `BIND_9.12.4, PostgreSQL 11.3`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_all_1.1) 
+    * [`all-2.2`, `BIND_9.16.39, MySQL 8+`, `Multiple Service Base on dumb-init`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.2)
+    * [`all-2.1`, `BIND_9.16.39, MySQL 8+`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_2.1)
+    * [`all-2.0`, `BIND_9.16.39, MySQL 8+`, `Multiple Service Base on Systemd`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile)
+
 * Muilt components
     * [`bind_dlz-mysql_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-mysql)
-    * [`bind_dlz-postgres_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres)
-    * [`BindUI_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI)
-    * [`url-forwarder_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_url-forwarder)
+    * [`bind_dlz-postgres_2.0`, `BIND_9.16.39, PostgreSQL 15.2`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres)
+    * [`BindUI_2.0`, `MySQL 8+`, `PostgreSQL 12-15`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI)
+    * [`url-forwarder_2.0`, `MySQL 8+`, `PostgreSQL 11-15`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_url-forwarder)
     * [`dns_nginx_proxy_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_DNS_nginx_proxy)
+    * [`bind_dlz-postgres_1.0`, `BIND_9.12.1, <= PostgreSQL 11`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres_1.0)
+    * [`BindUI_1.0`, `<= PostgreSQL 11`, `Django 3.2.18`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI_1.0)
 
 ## How to use this image
 
@@ -31,6 +34,16 @@ docker run -d --name dns \
  -p 8000:8000/tcp \
  cucker/dns:all-1.0
 
+# or
+docker run -d --name dns \
+ --restart=always \
+ -p 53:53/udp \
+ -p 53:53/tcp \
+ -p 127.0.0.1:953:953/tcp \
+ -p 80:80/tcp \
+ -p 8000:8000/tcp \
+ cucker/dns:all-1.1
+ 
 # or
 docker run -d --name dns \
  --restart=always \
@@ -108,13 +121,13 @@ docker run -d --privileged --name dns \
      -v /etc/dns/named:/etc/named \
      cucker/dns:bind_dlz-mysql_2.0
      
-    # /etc/dns/named/docker_init_info.sh.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
+    # /etc/dns/named/docker_init_info.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
     # 可配置只读用户
 
     # 重启容器
     docker restart --time 0 bind
     ```
-#### Storage Backend with PostgreSQL
+#### Storage Backend with PostgreSQL 15
 * PostgreSQL
     ```bash
     docker run -d --name postgresql \
@@ -170,9 +183,67 @@ docker run -d --privileged --name dns \
     docker restart --time 0 bind
     ```
 
+#### Storage Backend with PostgreSQL 11
+* PostgreSQL
+    ```bash
+    docker run -d --name postgresql \
+     -e POSTGRES_DB=dns \
+     -e POSTGRES_USER=dns_wr \
+     -e POSTGRES_PASSWORD=Ww123456! \
+     -e POSTGRES_HOST_AUTH_METHOD=scram-sha-256 \
+     -v /data/postgresql11/data:/var/lib/postgresql/data \
+     -p 5432:5432 \
+     postgres:11.3
+    ```
+    新建数据库 dns，新建用户该库的超级用户(OWNER) dns_wr，密码为 Ww123456!
+    
+    如果需要创建只读用户，等 BindUI 初始化数据库后，再创建。
+    ```bash
+    docker exec -it postgresql bash
+    # 在容器中执行下列命令
+    psql -h 127.0.0.1 -p 5432 -U dns_wr -d dns
+    // 创建只读用
+    CREATE USER dns_r WITH ENCRYPTED PASSWORD 'Rr123456!';
+
+    // 如果 Django migrate 生成表后，没有 select 权限，请再次执行下面的几条授权语句。
+    -- 设置默认事务只读
+    ALTER USER dns_r SET default_transaction_read_only=on;
+    -- 赋予用户连接数据库bind_ui的权限
+    GRANT CONNECT ON DATABASE dns TO dns_r;
+    -- 切换到指定库bind_ui
+    \c dns
+
+    --schema public 所有表的指定权限授权给指定的用户
+    GRANT USAGE ON SCHEMA public TO dns_r;
+    -- schema public 以后新建的表的指定权限赋予给指定的用户
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO dns_r;
+    -- schema public 的所有SEQUENCES(序列)的指定权限授权给指定的用户
+    GRANT SELECT ON ALL SEQUENCES IN SCHEMA public TO dns_r;
+    -- schema public 下的表的select权限授权给指定用户 
+    GRANT SELECT ON ALL TABLES IN SCHEMA public TO dns_r; 
+    ```
+    
+* BIND
+    ```bash
+    docker run -d --name bind  \
+     --restart=always \
+     -p 53:53/udp \
+     -p 53:53/tcp \
+     -p 127.0.0.1:953:953/tcp \
+     -v /etc/dns/named:/etc/named \
+     cucker/dns:bind_dlz-postgres_1.0
+     
+    # /etc/dns/named/docker_init_info.sh.sh 文件中，修改正确数据库连接信息，不正确的数据库连接信息将导致容器启动失败。
+
+    # 重启容器
+    docker restart --time 0 bind
+    ```
+
 #### Common Components (MySQL and PostgreSQL Storage Backend)
 
 * BindUI
+
+    * Support >= PostgreSQL 12, and MySQL 8+
     ```bash
     docker run -d --name BindUI \
      --restart=always \
@@ -185,7 +256,21 @@ docker run -d --privileged --name dns \
     # 重启容器
     docker restart --time 0 BindUI
     ```
+    
+    * Support <= PostgreSQL 11, and MySQL 8+
+    ```bash
+    docker run -d --name BindUI \
+     --restart=always \
+     -p 8000:8000 \
+     -v /etc/dns/BindUI:/etc/BindUI \
+     cucker/dns:BindUI_1.0
+     
+    # /etc/dns/BindUI/docker_init_info.sh 文件中，修改正确数据库连接等信息。需要配置可读写的用户
 
+    # 重启容器
+    docker restart --time 0 BindUI
+    ```
+    
 * url-forwarder
     ```bash
     # 1. run url-forwarder container
@@ -225,6 +310,18 @@ docker run -d --privileged --name dns \
     docker restart dns-proxy
     ```
 
+## Performance
+`BIND 9.12.1/BIND 9.12.4 + PostgreSQL 11` QPS up to 40000+.
+
+`BIND 9.16.36 + MySQL 8` QPS up to 1000+.
+
+`BIND 9.16.36 + PostgreSQL 15` QPS up to 1250+.
+
+**Proposal：**  
+* `postgres:11.3` + `cucker/dns:bind_dlz-postgres_1.0` + `cucker/dns:BindUI_1.0` + `cucker/dns:url-forwarder_2.0` [+ `cucker/dns:dns_nginx_proxy_2.0`]
+* `cucker/dns:all-1.0` (All in One)
+* `cucker/dns:all-1.1` (All in One)
+
 ## All in One System Information
 * BindUI Account Info
     ```
@@ -245,6 +342,16 @@ docker run -d --privileged --name dns \
     password：Rr123456!
     ```
 
+* PostgreSQL
+    ```
+    ## database：dns
+    user2：'dns_wr'@'%'
+    password：Ww123456!
+
+    user3：'dns_r'@'%'
+    password：Rr123456!
+    ```
+
 * Port Info
     ```
     EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 3306/tcp
@@ -254,6 +361,7 @@ docker run -d --privileged --name dns \
     80/tcp -> url-forwarder
     8000/tcp -> BindUI
     3306/tcp -> MySQL
+    5432/tcp -> PostgreSQL
     ```
 
 ## Project

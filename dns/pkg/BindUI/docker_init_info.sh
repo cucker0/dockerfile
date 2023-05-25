@@ -1,10 +1,11 @@
-# BindUI 连接数据库的信息
+# BindUI docker初始化信息
 
 # 是否更新配置，0：不更新配置，1或其他值：更新配置
 UPDATE_CONFIG=0
 # 是否初始化数据库。0：禁止初始化，1或其他值：进行初始化
 INIT_DATABASE=0
 
+# 连接数据库的信息
 # 数据类型，可选值：MySQL、PostgreSQL
 DB_TYPE=MySQL
 

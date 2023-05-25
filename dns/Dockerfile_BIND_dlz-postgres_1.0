@@ -1,0 +1,104 @@
+# BIND 9.12.1 + PostgreSQL 11 client
+
+# builder_bind
+FROM centos:7.6.1810 AS builder_bind
+ADD pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
+
+RUN set -eux; \
+    #yum clean all; \
+    #yum makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Aliyun Mirror; \
+    minorver=7.6.1810; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-*.repo; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
+    yum makecache; \
+    yum -y install wget epel-release centos-release-scl; \
+    # 安装PostgreSQL; \
+    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    yum -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
+    yum -y install python-ply perl-diagnostics epel-release diffutils; \
+    yum -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
+    yum -y install openssl openssl-devel; \
+    yum -y install openssl11 openssl11-devel; \
+    echo -e "\n\n## PATH \nexport PATH=$PATH:/usr/pgsql-11/bin" >> /etc/profile.d/env.sh; \
+    . /etc/profile.d/env.sh; \
+    cd /usr/local/src/bind-9.12.1; \
+    export LDFLAGS=-L/usr/pgsql-11/lib; \
+    ./configure --prefix=/usr/local/bind_9.12.1 --with-dlz-postgres=yes --enable-threads --enable-epoll --enable-largefile; \
+    make; \
+    make install;
+    
+# origin
+FROM centos:7.6.1810
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+ARG BIND_PATH=/usr/local/bind_9.12.1
+
+COPY pkg/BIND/docker-entrypoint3.sh /
+COPY pkg/BIND/config/dlz-postgres/etc/named/ ${BIND_PATH}/etc/
+COPY pkg/BIND/docker_init_info.sh ${BIND_PATH}/etc/
+COPY --from=builder_bind /usr/local/bind_9.12.1 /usr/local/bind_9.12.1/
+
+RUN set -eux; \
+    #yum clean all; \
+    #yum makecache; \
+    # 关联动态库; \
+    echo -e "/usr/local/lib\n\
+/usr/local/lib64\n\
+/lib\n\
+/lib64\n\
+/usr/lib\n\
+/usr/lib64\n\
+" >> /etc/ld.so.conf; \
+    ldconfig; \
+    # Aliyun Mirror; \
+    #yum -y install https://mirrors.aliyun.com/centos-vault/7.6.1810/os/x86_64/Packages/wget-1.14-18.el7.x86_64.rpm; \
+    #yum -y install https://mirrors.aliyun.com/epel/7/x86_64/Packages/e/epel-release-7-14.noarch.rpm; \
+    minorver=7.6.1810; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-*.repo; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-rh-2-2.el7.centos.noarch.rpm; \
+    #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
+    yum makecache; \
+    yum -y install wget epel-release centos-release-scl sudo; \
+    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    # Install BIND; \
+    yum -y install libuv procps-ng; \
+    ln -s ${BIND_PATH} /usr/local/bind; \
+    ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
+    ln -s /usr/local/bind/bin/dig /usr/bin/; \
+    groupadd -g 25 named; \
+    useradd named -M -u 25 -g 25 -s /sbin/nologin; \
+    mkdir -p /usr/local/bind/var; chown -R named:named /usr/local/bind/var; \
+    mkdir -p /var/log/named /usr/local/bind/etc/conf.d; chown -R named.named /var/log/named; \
+    mkdir -p /dns/origin/bind; \
+    cp -a /usr/local/bind/etc /dns/origin/bind/; \
+    mv /usr/local/bind/etc /etc/named; \
+    ln -s /etc/named /usr/local/bind/etc; \
+    # docker-entrypoint3.sh; \
+    chmod +x /docker-entrypoint3.sh; \
+    # Clear work; \
+    rm -rf /usr/local/src/*; \
+    yum clean all;
+    
+VOLUME ["/etc/named", "/var/log/named"]
+EXPOSE 53/udp 53/tcp 953/tcp
+
+ENTRYPOINT ["/docker-entrypoint3.sh"]

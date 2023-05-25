@@ -71,7 +71,6 @@ RUN set -eux; \
     ldconfig; \
     # Aliyun Mirror; \
     minorver=7.6.1810; \
-    minorver=7.6.1810; \
     sed -e "s|^mirrorlist=|#mirrorlist=|g" \
          -e "s|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver|g" \
          -i.bak \
@@ -216,7 +215,6 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     useradd named -M -u 25 -g 25 -s /sbin/nologin; \
     mkdir -p /usr/local/bind/var; chown -R named:named /usr/local/bind/var; \
     mkdir -p /var/log/named /usr/local/bind/etc/conf.d; chown -R named.named /var/log/named; \
-    
     #systemctl enable named; \
     # Clear work; \
     rm -rf /usr/local/src/*; \
