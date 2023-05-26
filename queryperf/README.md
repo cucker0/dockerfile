@@ -16,7 +16,7 @@ Copy the queryperf binary file from docker to the host `/usr/bin/`, then you can
     ```bash
     docker run --rm -v /usr/bin:/pkg cucker/queryperf
     ```
-    It will copy queryperf from docker to host(/usr/bin/queryperf).
+    It will copy queryperf file from docker to host(/usr/bin/queryperf).
 
 2. Use queryperf command in Host.
 
@@ -72,9 +72,9 @@ Copy the queryperf binary file from docker to the host `/usr/bin/`, then you can
         liangxi.go.com CNAME
         ```
     2. exec queryperf
-    ```bash
-    queryperf -d ./1000rr.txt -s 10.100.240.136 -p 53
-    ```
+        ```bash
+        queryperf -d ./1000rr.txt -s 10.100.240.136 -p 53
+        ```
 
 ## Project
 [queryperf](https://github.com/cucker0/dockerfile/blob/main/queryperf)
