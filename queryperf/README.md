@@ -56,9 +56,11 @@ Copy the queryperf binary file from docker to the host `/usr/bin/`, then you can
       -h print this usage
     ```
 
-* Example for stress testing
+* Example of stress testing
     1. Prepare an RR sample file.
-        cat ./1000rr.txt 
+    
+        cat ./1000rr.txt
+        
         ```bash
         dns.zz.com A
         10.100.240.133 PTR
@@ -70,6 +72,7 @@ Copy the queryperf binary file from docker to the host `/usr/bin/`, then you can
         go.com MX
         zz.com SOA
         liangxi.go.com CNAME
+        www.bing.com A
         ```
     2. exec queryperf
         ```bash
