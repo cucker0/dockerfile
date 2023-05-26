@@ -9,7 +9,7 @@ This image build with queryperf v1.12.
 * [`1.0`, `latest`](https://github.com/cucker0/dockerfile/blob/main/queryperf/Dockerfile)
 
 ## How does it work
-Copy the queryperf binary file from docker to the host `/usr/bin/`, then you can use the queryperf command.
+Copy the queryperf binary file from docker to the host `/usr/bin/`, then you can use the queryperf command in the host.
 
 ## How to use this image
 1. Run a container with cucker/queryperf image.
