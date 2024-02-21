@@ -14,7 +14,7 @@ include docker run options and arguments.
 ```bash
 Usage:
 # Command alias
-echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
+echo "alias get_run_command='docker run --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
 . ~/.bashrc
 
 # Excute command
@@ -38,7 +38,7 @@ get_run_command <CONTAINER>
     docker run -d --name mysql01 --restart=always -p 13306:3306/tcp --env MYSQL_ROOT_PASSWORD=py123456 mysql
     
     ## Command alias
-    echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
+    echo "alias get_run_command='docker run --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
     . ~/.bashrc
     
     ## Excute command
