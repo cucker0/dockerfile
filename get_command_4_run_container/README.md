@@ -27,7 +27,7 @@ get_run_command {all}
 ## For one or more containers
 get_run_command <CONTAINER> [CONTAINER...]
 ```
-<CONTAINER> is `container id` or `container name`
+`<CONTAINER>` is `container id` or `container name`
 
 
 * See help
