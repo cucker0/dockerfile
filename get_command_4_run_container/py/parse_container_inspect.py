@@ -3,7 +3,7 @@
 #
 
 """
-解析docker 容器的启动参数
+解析 docker 容器的 docker run 完整命令
 
 require: python 3
 
