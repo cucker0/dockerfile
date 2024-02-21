@@ -324,7 +324,7 @@ class MYDOCKER(object):
     def help_msg():
         _MSG = """Usage:
 # Command alias
-echo "alias get_run_command='docker run --rm -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
+echo "alias get_run_command='docker run --rm --privileged -v /var/run/docker.sock:/var/run/docker.sock cucker/get_command_4_run_container'" >> ~/.bashrc
 . ~/.bashrc
 
 # Excute command
