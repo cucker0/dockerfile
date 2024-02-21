@@ -253,7 +253,7 @@ class MYDOCKER(object):
             # _args = " ".join(self.args[0])
             _args = ""
             for i in self.args[0]:
-                # sh -c “xxx” 命令中，-c 后的子命令需要引号包裹的情况
+                # sh -c "xxx" 命令中，-c 后的子命令需要引号包裹的情况
                 if i.__contains__(' "'):
                     i = f"'{i}'"
                 elif i.__contains__(" '"):
