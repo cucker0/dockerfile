@@ -6,7 +6,7 @@ CREATE USER 'dns_wr'@'%' IDENTIFIED BY 'Ww123456!';
 GRANT all ON dns.* TO 'dns_wr'@'%';
 
 CREATE USER 'dns_r'@'%' IDENTIFIED BY 'Rr123456!';
-GRANT select ON dns.* TO 'dns_r'@'%';
+GRANT SELECT ON dns.* TO 'dns_r'@'%';
 
 -- 刷新权限
-flush privileges;
+FLUSH PRIVILEGES;
