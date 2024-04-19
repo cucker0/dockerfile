@@ -127,7 +127,7 @@ RUN set -eux; \
     # 安装最新版本MySQL; \
     #dnf -y install mysql-server mysql mysql-devel; \
     # 如果是安装指定版本的 MySQL; \
-    dnf -y install mysql-community-server-8.0.32 mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    dnf -y --nogpgcheck install mysql-community-server-8.0.32 mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
     bash /usr/bin/mysqld_pre_systemd; \
     /usr/sbin/mysqld --user=mysql -D ; \
     bash /pkg/MySQL/update_root_password.sh; \
