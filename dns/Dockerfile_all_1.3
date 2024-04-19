@@ -1,0 +1,17 @@
+# 基于 cucker/dns:all-1.0，更新 BindUI，支持 IPv6 zone、PTR.
+# 为何要基于 cucker/dns:all-1.0 来 docker build Image？因为 2024 年开始 PostgreSQL 官方不提供 PostgreSQL-11 安装包了。
+
+FROM cucker/dns:all-1.0
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+COPY pkg/BindUI/templates/bind/domain_list.html /data/webroot/BindUI/templates/bind/
+COPY pkg/BindUI/static/AdminLTE/js/myjs.js /data/webroot/BindUI/static/AdminLTE/js/
+COPY pkg/BindUI/dns/templatetags/MyTemplate.py /data/webroot/BindUI/dns/templatetags/MyTemplate.py
+COPY pkg/BindUI/templates/bind/tmp/export_dns_record.txt /data/webroot/BindUI/templates/bind/tmp/
+COPY pkg/BindUI/README.md /data/webroot/BindUI/
+
+VOLUME ["/var/lib/pgsql/11/data", "/var/log/named", "/data/logs/url-forwarder", "/var/log/django"]
+EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 5432/tcp
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/server-start2.sh", "--with", "--args"]
