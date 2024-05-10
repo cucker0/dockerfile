@@ -56,6 +56,8 @@ RUN set -eux; \
 # builder_bind
 FROM centos:7.6.1810 AS builder_bind
 ADD pkg/BIND/bind-9.12.4.tar.gz /usr/local/src/
+ADD pkg/PostgreSQL/PostgreSQL11.3/ /usr/local/src/
+COPY pkg/PostgreSQL/* /pkg/PostgreSQL/
 
 RUN set -eux; \
     #yum clean all; \
@@ -81,8 +83,14 @@ RUN set -eux; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl; \
     # 安装PostgreSQL; \
-    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
-    yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    ## PostgreSQL 官方的 yum 库已经不提供 PostgreSQL 11 
+    # PostgreSQL 11 相关包参考 https://repo.nrg.wustl.edu/postgres/11/redhat/rhel-7.6-x86_64/
+    # yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    # yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-libs-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-server-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-devel-11.3-1PGDG.rhel7.x86_64.rpm; \
     yum -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
     yum -y install python-ply perl-diagnostics epel-release diffutils; \
     yum -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
@@ -149,8 +157,12 @@ RUN set -eux; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl sudo; \
     # 安装PostgreSQL; \
-    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
-    yum install -y postgresql11-server-11.3 postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    # yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    # yum install -y postgresql11-server-11.3 postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-libs-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-server-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-devel-11.3-1PGDG.rhel7.x86_64.rpm; \
     #sed -i '84,86c\PGDATA=/var/lib/pgsql/11/data/' /usr/pgsql-11/bin/postgresql-11-setup; \
     sed -i 's#systemctl show -p Environment "${SERVICE_NAME}.service"#echo "Environment=PGDATA=/var/lib/pgsql/11/data/"#' /usr/pgsql-11/bin/postgresql-11-setup; \
     /usr/pgsql-11/bin/postgresql-11-setup initdb; \
