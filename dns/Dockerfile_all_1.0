@@ -56,6 +56,7 @@ RUN set -eux; \
 # builder_bind
 FROM centos:7.6.1810 AS builder_bind
 ADD pkg/BIND/bind-9.12.1.tar.gz /usr/local/src/
+COPY pkg/PostgreSQL/ /pkg/PostgreSQL/
 
 RUN set -eux; \
     #yum clean all; \
@@ -80,8 +81,14 @@ RUN set -eux; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl; \
     # 安装PostgreSQL; \
-    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
-    yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    ## PostgreSQL 官方的 yum 库已经不提供 PostgreSQL 11 
+    # PostgreSQL 11 相关包参考 https://repo.nrg.wustl.edu/postgres/11/redhat/rhel-7.6-x86_64/
+    #yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    #yum install -y postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-libs-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-11.3-1PGDG.rhel7.x86_64.rpm; \
+    #yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-server-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-devel-11.3-1PGDG.rhel7.x86_64.rpm; \
     yum -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
     yum -y install python-ply perl-diagnostics epel-release diffutils; \
     yum -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
@@ -109,7 +116,7 @@ ENV DJANGO_SUPERUSER_PASSWORD=Dns123456!
 ADD pkg/BindUI.tar.gz /data/webroot/
 COPY pkg/url-forwarder/* /data/software/url-forwarder/
 COPY pkg/BIND/config/dlz-postgres/etc/named/ ${BIND_PATH}/etc/
-COPY pkg/PostgreSQL/* /pkg/PostgreSQL/
+COPY pkg/PostgreSQL/ /pkg/PostgreSQL/
 #COPY pkg/linux/bindui.service /etc/systemd/system/
 #COPY pkg/linux/docker-entrypoint.sh /usr/local/bin/
 #ADD https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.tar.gz /usr/local/src/
@@ -121,6 +128,7 @@ ADD pkg/JDK/jdk-17.0.6_linux-x64_bin.tar.gz /usr/local/java/
 COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
 COPY --from=builder_bind /usr/local/bind_9.12.1 /usr/local/bind_9.12.1/
 ADD pkg/BindUI/requirements_PostgreSQL-11.txt /usr/local/src/
+
 
 
 RUN set -eux; \
@@ -148,8 +156,12 @@ RUN set -eux; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl sudo; \
     # 安装PostgreSQL; \
-    yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
-    yum install -y postgresql11-server-11.3 postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    #yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
+    #yum install -y postgresql11-server-11.3 postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-libs-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-server-11.3-1PGDG.rhel7.x86_64.rpm; \
+    yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-devel-11.3-1PGDG.rhel7.x86_64.rpm; \
     #sed -i '84,86c\PGDATA=/var/lib/pgsql/11/data/' /usr/pgsql-11/bin/postgresql-11-setup; \
     sed -i 's#systemctl show -p Environment "${SERVICE_NAME}.service"#echo "Environment=PGDATA=/var/lib/pgsql/11/data/"#' /usr/pgsql-11/bin/postgresql-11-setup; \
     /usr/pgsql-11/bin/postgresql-11-setup initdb; \
@@ -215,6 +227,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     useradd named -M -u 25 -g 25 -s /sbin/nologin; \
     mkdir -p /usr/local/bind/var; chown -R named:named /usr/local/bind/var; \
     mkdir -p /var/log/named /usr/local/bind/etc/conf.d; chown -R named.named /var/log/named; \
+    
     #systemctl enable named; \
     # Clear work; \
     rm -rf /usr/local/src/*; \

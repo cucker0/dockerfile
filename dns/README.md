@@ -21,6 +21,9 @@
     * [`bind_dlz-postgres_1.0`, `BIND_9.12.1, <= PostgreSQL 11`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres_1.0)
     * [`BindUI_1.0`, `<= PostgreSQL 11`, `Django 3.2.18`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI_1.0)
 
+## Manuals
+https://www.yuque.com/cucker/udwka0/emk0i5bcgfrcv4m9?singleDoc# 《BindUI 智能 DNS 域名管理系使用文档》
+
 ## How to use this image
 
 ### All in One
@@ -42,7 +45,7 @@ docker run -d --name dns \
  -p 127.0.0.1:953:953/tcp \
  -p 80:80/tcp \
  -p 8000:8000/tcp \
- cucker/dns:all-1.1
+ cucker/dns:all-1.0
  
 # or
 docker run -d --name dns \
@@ -276,7 +279,7 @@ docker run -d --privileged --name dns \
     # 1. run url-forwarder container
     docker run -d --name url-forwarder -p 80:80 -v /etc/dns/url-forwarder:/etc/url-forwarder cucker/dns:url-forwarder_2.0
         
-    # 2.  modify /etc/url-forwarder/application.yml, include connection database info.
+    # 2. modify /etc/url-forwarder/application.yml, include connection database info.
     # 可配置只读用户
     
     # 3. restart url-forwarder container
@@ -375,7 +378,7 @@ docker build -f ./Dockerfile -t cucker/dns:all-2.0 .
 // or
 docker build --no-cache -f ./Dockerfile -t cucker/dns:all-2.0 .
 
-# or 
+// or 
 docker build -f ./Dockerfile_2.1 -t cucker/dns:all-2.1 .
 
 docker build -f ./Dockerfile_BindUI -t cucker/dns:BindUI_2.0 .
