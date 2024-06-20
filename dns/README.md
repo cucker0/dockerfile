@@ -35,7 +35,7 @@ docker run -d --name dns \
  -p 127.0.0.1:953:953/tcp \
  -p 80:80/tcp \
  -p 8000:8000/tcp \
- cucker/dns:all-1.0
+ cucker/dns:latest
 
 # or
 docker run -d --name dns \
