@@ -22,7 +22,7 @@
     * [`BindUI_1.0`, `MySQL 8+`, `<= PostgreSQL 11`, `Django 3.2.18`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI_1.0)
 
 ## Manuals
-* [BindUI 智能 DNS 域名管理系使用文档](https://www.yuque.com/cucker/udwka0/emk0i5bcgfrcv4m9?singleDoc# 《BindUI 智能 DNS 域名管理系使用文档》)
+* [BindUI 智能 DNS 域名管理系使用文档](https://www.yuque.com/cucker/udwka0/emk0i5bcgfrcv4m9?singleDoc)
 
 ## How to use this image
 
