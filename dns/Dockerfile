@@ -53,7 +53,7 @@ RUN set -eux; \
     dnf -y --skip-broken install openssl-static; \
     dnf -y install xz lzma xz-devel; \
     dnf -y install sqlite sqlite-devel; \
-    dnf -y install gdbm gdbm-devel; \
+    dnf -y install gdbm gdbm-devel --nobest; \
     dnf -y install tk tk-devel; \
     dnf -y install libffi libffi-devel; \
     dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
@@ -97,7 +97,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     bash ./install.sh; \
     # Install BIND; \
     dnf -y install python3-ply perl-diagnostics epel-release diffutils; \
-    dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
+    dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel --nobest; \
     dnf -y install bind-utils; \
     cd /usr/local/src/; \
     wget https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz; \

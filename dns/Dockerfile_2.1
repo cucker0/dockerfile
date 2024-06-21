@@ -28,7 +28,7 @@ RUN set -eux; \
     dnf -y --skip-broken install openssl-static; \
     dnf -y install xz lzma xz-devel; \
     dnf -y install sqlite sqlite-devel; \
-    dnf -y install gdbm gdbm-devel; \
+    dnf -y install gdbm gdbm-devel --nobest; \
     dnf -y install tk tk-devel; \
     dnf -y install libffi libffi-devel; \
     dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
@@ -67,10 +67,10 @@ RUN set -eux; \
     # 安装最新版本MySQL; \
     #dnf -y install mysql mysql-devel; \
     # 如果是安装指定版本的 MySQL; \
-    dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    dnf -y install mysql-community-client-8.0.32 mysql-community-devel-8.0.32 --nogpgcheck; \
     dnf -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
     dnf -y install python3-ply perl-diagnostics epel-release diffutils; \
-    dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
+    dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel --nobest; \
     #dnf -y install bind-utils; \
     cd /usr/local/src/bind-9.16.39; \
     #wget https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz; \
@@ -128,7 +128,7 @@ RUN set -eux; \
     # 安装最新版本MySQL; \
     #dnf -y install mysql-server mysql mysql-devel; \
     # 如果是安装指定版本的 MySQL; \
-    dnf -y install mysql-community-server-8.0.32 mysql-community-client-8.0.32 mysql-community-devel-8.0.32; \
+    dnf -y install mysql-community-server-8.0.32 mysql-community-client-8.0.32 mysql-community-devel-8.0.32 --nogpgcheck; \
     bash /usr/bin/mysqld_pre_systemd; \
     /usr/sbin/mysqld --user=mysql -D ; \
     bash /pkg/MySQL/update_root_password.sh; \

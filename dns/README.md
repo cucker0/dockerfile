@@ -15,14 +15,14 @@
 * Muilt components
     * [`bind_dlz-mysql_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-mysql)
     * [`bind_dlz-postgres_2.0`, `BIND_9.16.39, PostgreSQL 15.2`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres)
-    * [`BindUI_2.0`, `MySQL 8+`, `PostgreSQL 12-15`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI)
+    * [`BindUI_2.0`, `MySQL 8+`, `PostgreSQL 12-15`, `Django 4.2`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI)
     * [`url-forwarder_2.0`, `MySQL 8+`, `PostgreSQL 11-15`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_url-forwarder)
     * [`dns_nginx_proxy_2.0`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_DNS_nginx_proxy)
     * [`bind_dlz-postgres_1.0`, `BIND_9.12.1, <= PostgreSQL 11`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BIND_dlz-postgres_1.0)
-    * [`BindUI_1.0`, `<= PostgreSQL 11`, `Django 3.2.18`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI_1.0)
+    * [`BindUI_1.0`, `MySQL 8+`, `<= PostgreSQL 11`, `Django 3.2.18`](https://github.com/cucker0/dockerfile/blob/main/dns/Dockerfile_BindUI_1.0)
 
 ## Manuals
-https://www.yuque.com/cucker/udwka0/emk0i5bcgfrcv4m9?singleDoc# 《BindUI 智能 DNS 域名管理系使用文档》
+* [BindUI 智能 DNS 域名管理系使用文档](https://www.yuque.com/cucker/udwka0/emk0i5bcgfrcv4m9?singleDoc# 《BindUI 智能 DNS 域名管理系使用文档》)
 
 ## How to use this image
 
@@ -372,6 +372,8 @@ docker run -d --privileged --name dns \
 
 ## Docker build
 ```bash
+download https://github.com/cucker0/dockerfile/tree/main/dns
+
 cd <Dockerfile_root_path>
 docker build -f ./Dockerfile -t cucker/dns:all-2.0 .
 
