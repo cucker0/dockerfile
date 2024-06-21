@@ -87,6 +87,48 @@ docker run -d --privileged --name dns \
  cucker/dns:all-2.0
 ```
 
+#### All in One System Information
+* BindUI Account Info
+    ```
+    url：http://<IP_MAP>:8000
+    user：admin
+    password：Dns123456!
+    ```
+* MySQL
+    ```
+    user1：root
+    password：Py123456!
+
+    ## database：dns
+    user2：'dns_wr'@'%'
+    password：Ww123456!
+
+    user3：'dns_r'@'%'
+    password：Rr123456!
+    ```
+
+* PostgreSQL
+    ```
+    ## database：dns
+    user2：'dns_wr'@'%'
+    password：Ww123456!
+
+    user3：'dns_r'@'%'
+    password：Rr123456!
+    ```
+
+* Port Info
+    ```
+    EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 3306/tcp
+    53/udp -> bind
+    53/tcp -> bind
+    953/tcp -> bind
+    80/tcp -> url-forwarder
+    8000/tcp -> BindUI
+    3306/tcp -> MySQL
+    5432/tcp -> PostgreSQL
+    ```
+
 ### Muilt Components
 
 #### Storage Backend with MySQL
@@ -216,7 +258,7 @@ docker run -d --privileged --name dns \
     -- 切换到指定库bind_ui
     \c dns
 
-    --schema public 所有表的指定权限授权给指定的用户
+    -- schema public 所有表的指定权限授权给指定的用户
     GRANT USAGE ON SCHEMA public TO dns_r;
     -- schema public 以后新建的表的指定权限赋予给指定的用户
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO dns_r;
@@ -314,61 +356,19 @@ docker run -d --privileged --name dns \
     ```
 
 ## Performance
-`BIND 9.12.1/BIND 9.12.4 + PostgreSQL 11` QPS up to 40000+.
-
-`BIND 9.16.36 + MySQL 8` QPS up to 1000+.
-
-`BIND 9.16.36 + PostgreSQL 15` QPS up to 1250+.
+* `BIND 9.12.1/BIND 9.12.4 + PostgreSQL 11` QPS up to 40000+.
+* `BIND 9.16.36 + MySQL 8` QPS up to 1000+.
+* `BIND 9.16.36 + PostgreSQL 15` QPS up to 1250+.
 
 **Proposal：**  
 * `postgres:11.3` + `cucker/dns:bind_dlz-postgres_1.0` + `cucker/dns:BindUI_1.0` + `cucker/dns:url-forwarder_2.0` [+ `cucker/dns:dns_nginx_proxy_2.0`]
 * `cucker/dns:all-1.0` (All in One)
 * `cucker/dns:all-1.1` (All in One)
 
-## All in One System Information
-* BindUI Account Info
-    ```
-    url：http://<IP_MAP>:8000
-    user：admin
-    password：Dns123456!
-    ```
-* MySQL
-    ```
-    user1：root
-    password：Py123456!
-
-    ## database：dns
-    user2：'dns_wr'@'%'
-    password：Ww123456!
-
-    user3：'dns_r'@'%'
-    password：Rr123456!
-    ```
-
-* PostgreSQL
-    ```
-    ## database：dns
-    user2：'dns_wr'@'%'
-    password：Ww123456!
-
-    user3：'dns_r'@'%'
-    password：Rr123456!
-    ```
-
-* Port Info
-    ```
-    EXPOSE 53/udp 53/tcp 953/tcp 80/tcp 8000/tcp 3306/tcp
-    53/udp -> bind
-    53/tcp -> bind
-    953/tcp -> bind
-    80/tcp -> url-forwarder
-    8000/tcp -> BindUI
-    3306/tcp -> MySQL
-    5432/tcp -> PostgreSQL
-    ```
-
 ## Project
-[dns](https://github.com/cucker0/dockerfile/blob/main/dns/)
+* [BindUI](https://github.com/cucker0/bindui)
+* [url-forwarder](https://gitee.com/cucker/url-forwarder)
+* [dns](https://github.com/cucker0/dockerfile/blob/main/dns/)
 
 ## Docker build
 ```bash
