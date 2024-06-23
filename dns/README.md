@@ -90,16 +90,18 @@ docker run -d --privileged --name dns \
 #### All in One System Information
 * BindUI Account Info
     ```
-    url：http://<IP_MAP>:8000
+    url：http://<IP>:8000
     user：admin
     password：Dns123456!
     ```
 * MySQL
     ```
+    ## MySQL 8
     user1：root
     password：Py123456!
 
-    ## database：dns
+    
+    database: dns
     user2：'dns_wr'@'%'
     password：Ww123456!
 
@@ -109,7 +111,8 @@ docker run -d --privileged --name dns \
 
 * PostgreSQL
     ```
-    ## database：dns
+    ## PostgreSQL 11
+    database：dns
     user2：'dns_wr'@'%'
     password：Ww123456!
 
