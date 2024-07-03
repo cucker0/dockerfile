@@ -5,7 +5,7 @@ LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 ENV PATH=$PATH:/usr/local/nginx/sbin
 
 COPY pkg/httpGuard/ /etc/nginx/httpGuard
-COPY pkg/nginx/etc/nginx/ /etc/nginx/
+COPY pkg/nginx/etc/nginx /etc/nginx/
 COPY pkg/script/nginx_auth_basic.sh /usr/local/src/
 
 RUN set -eux; \
@@ -23,8 +23,8 @@ RUN set -eux; \
     # 生成验证码图片
     php ./getImg.php; \
     # 文件权限设置
-    chown nginx:nginx /etc/nginx/httpGuard/url-protect/byDeny_ip_list.txt /etc/nginx/httpGuard/url-protect/byWhite_ip_list.txt; \
-    chown nginx:nginx /etc/nginx/httpGuard/logs; \
+    chown nginx:nginx /etc/nginx/httpGuard/url-protect/byDeny_ip_list.txt /etc/nginx/httpGuard/url-protect/byWhite_ip_list.txt;  \
+    chown -R nginx:nginx /etc/nginx/httpGuard/logs; \
     rm -rf /usr/local/src/php; \
     # Copy /etc/nginx/ to /origin/nginx/etc/
     rm -rf /origin/nginx/etc; \
@@ -36,7 +36,7 @@ RUN set -eux; \
 VOLUME ["/etc/nginx", "/var/log/nginx"]
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-EXPOSE 80/tcp 443/tcp
+EXPOSE 80/tcp 443/tcp 17818/tcp
 STOPSIGNAL SIGQUIT
 # 切换用户
 #USER nginx

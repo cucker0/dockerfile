@@ -9,7 +9,7 @@ Make and install Nginx，expanded of luajit2-2, openssl, ngx_devel_kit, lua-ngin
 ```bash
 mkdir -p /data/docker-volume/nginx-xx /data/docker-volume/nginx-xx-log
 
-docker run --name waf \
+docker run --name nginx-xx \
  -d \
  -p 80:80/tcp \
  -p 443:443/tcp \
