@@ -29,11 +29,12 @@ docker run --name waf \
 ```
 
 * WAF admin Web
-
+```
 http://<IP>:17818/man
 
 User：admin  
 Password：Waf.123
+```
 
 ## /etc/nginx directory structure
 ```bash
