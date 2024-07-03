@@ -13,7 +13,7 @@ docker run --name nginx-xx \
  -d \
  -p 80:80/tcp \
  -p 443:443/tcp \
- -v /docker-volume/nginx-xx:/etc/nginx \
+ -v /data/docker-volume/nginx-xx:/etc/nginx \
  -v /data/docker-volume/nginx-xx-log:/usr/local/nginx/logs/ \
  cucker/nginx_make_install:latest
 ```
