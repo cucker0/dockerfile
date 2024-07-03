@@ -1,0 +1,1 @@
+Add some stream install configure.

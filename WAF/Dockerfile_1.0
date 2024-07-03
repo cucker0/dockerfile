@@ -1,2 +1,44 @@
-FROM rockylinux:9.3
+FROM cucker/nginx_make_install:1.0
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+
+ENV PATH=$PATH:/usr/local/nginx/sbin
+
+COPY pkg/httpGuard/ /etc/nginx/httpGuard
+COPY pkg/nginx/etc/nginx/ /etc/nginx/
+COPY pkg/script/nginx_auth_basic.sh /usr/local/src/
+
+RUN set -eux; \
+    # 开启基于Basic的认证
+    yum -y install httpd-tools; \
+    bash /usr/local/src/nginx_auth_basic.sh; \
+    chown nginx:nginx /etc/nginx/auth_basic; \
+    chmod 400 /etc/nginx/auth_basic; \
+    # install php
+    mkdir -p /usr/local/src/php; \
+    yum -y install --downloadonly --downloaddir=/usr/local/src/php php php-gd; \
+    cd /usr/local/src/php; \
+    rpm -ivh ./php-common-*.rpm ./php-cli-*.rpm ./php-gd-*.rpm; \
+    cd /etc/nginx/httpGuard/captcha; \
+    # 生成验证码图片
+    php ./getImg.php; \
+    # 文件权限设置
+    chown nginx:nginx /etc/nginx/httpGuard/url-protect/byDeny_ip_list.txt /etc/nginx/httpGuard/url-protect/byWhite_ip_list.txt; \
+    chown nginx:nginx /etc/nginx/httpGuard/logs; \
+    rm -rf /usr/local/src/php; \
+    # Copy /etc/nginx/ to /origin/nginx/etc/
+    rm -rf /origin/nginx/etc; \
+    mkdir -p /origin/nginx/etc; \
+    cp -a /etc/nginx /origin/nginx/etc/; \
+    yum clean all;
+
+
+VOLUME ["/etc/nginx", "/var/log/nginx"]
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+EXPOSE 80/tcp 443/tcp
+STOPSIGNAL SIGQUIT
+# 切换用户
+#USER nginx
+CMD ["nginx", "-g", "daemon off;"]
+    

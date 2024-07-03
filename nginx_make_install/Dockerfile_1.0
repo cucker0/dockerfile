@@ -3,15 +3,19 @@ LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 
 RUN set -eux; \
-	# 可选版本 1.12.1、1.12.2、1.14.2、1.18.0、1.24.0、1.26.1
-	nginx_version=1.26.1; \
-	yum -y install git; \
-	mkdir -p /usr/local/src/nginx-${nginx_version}_v0; \
-	cd /usr/local/src/nginx-${nginx_version}_v0; \
-	#git clone https://github.com/cucker0/nginx-install.git; \
-	git clone  https://gitee.com/cucker/nginx-install.git; \
-	cd nginx-install/nginx-${nginx_version}; \
-	bash ./nginx_install.sh;
+    # 可选版本 1.12.1、1.12.2、1.14.2、1.18.0、1.24.0、1.26.1
+    nginx_version=1.26.1; \
+    yum -y install git; \
+    mkdir -p /usr/local/src/nginx-${nginx_version}_v0; \
+    cd /usr/local/src/nginx-${nginx_version}_v0; \
+    #git clone https://github.com/cucker0/nginx-install.git; \
+    git clone  https://gitee.com/cucker/nginx-install.git; \
+    cd nginx-install/nginx-${nginx_version}; \
+    bash ./nginx_install.sh; \
+    rm -rf /usr/local/src/nginx-${nginx_version}_v0; \
+    #mkdir -p /var/log/nginx /usr/local/nginx/logs; \
+    #chown -R nginx:nginx /var/log/nginx /usr/local/nginx/logs; \
+    dnf clean all;
 
 
 COPY pkg/nginx/etc/nginx/ /etc/nginx/
@@ -30,4 +34,6 @@ VOLUME ["/etc/nginx", "/var/log/nginx"]
 ENTRYPOINT ["/docker-entrypoint.sh"]
 EXPOSE 80/tcp 443/tcp
 STOPSIGNAL SIGQUIT
+# 切换用户
+#USER nginx
 CMD ["nginx", "-g", "daemon off;"]
