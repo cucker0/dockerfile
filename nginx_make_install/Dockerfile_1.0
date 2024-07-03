@@ -1,0 +1,33 @@
+FROM rockylinux:9.3
+LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
+
+
+RUN set -eux; \
+	# 可选版本 1.12.1、1.12.2、1.14.2、1.18.0、1.24.0、1.26.1
+	nginx_version=1.26.1; \
+	yum -y install git; \
+	mkdir -p /usr/local/src/nginx-${nginx_version}_v0; \
+	cd /usr/local/src/nginx-${nginx_version}_v0; \
+	#git clone https://github.com/cucker0/nginx-install.git; \
+	git clone  https://gitee.com/cucker/nginx-install.git; \
+	cd nginx-install/nginx-${nginx_version}; \
+	bash ./nginx_install.sh;
+
+
+COPY pkg/nginx/etc/nginx/ /etc/nginx/
+# COPY pkg/nginx/etc/nginx/ /origin/nginx/etc/nginx/
+COPY pkg/nginx/docker-entrypoint.sh /
+ENV PATH=$PATH:/usr/local/nginx/sbin
+
+RUN set -eux; \
+    mkdir -p /origin/nginx/etc; \
+    cp -a /etc/nginx /origin/nginx/etc/; \
+    # docker-entrypoint.sh; \
+    chmod +x /docker-entrypoint.sh;
+
+VOLUME ["/etc/nginx", "/var/log/nginx"]
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
+EXPOSE 80/tcp 443/tcp
+STOPSIGNAL SIGQUIT
+CMD ["nginx", "-g", "daemon off;"]
