@@ -39,7 +39,7 @@ Password：Waf.123
 ## /etc/nginx directory structure
 ```bash
 $  tree -L 2 /etc/nginx
-/data/docker-volume/waf/
+/etc/nginx
 ├── auth_basic
 ├── conf.d  // nginx Web Server 配置文件
 │   ├── default.conf
@@ -77,3 +77,6 @@ $  tree -L 2 /etc/nginx
 ├── uwsgi_params.default
 └── win-utf
 ```
+
+## Project
+[httpGuard](https://github.com/cucker0/httpguard)
