@@ -194,7 +194,7 @@ docker run -d --privileged --name dns \
     docker exec -it postgresql bash
     # 在容器中执行下列命令
     psql -h 127.0.0.1 -p 5432 -U dns_wr -d dns
-    // 创建只读用
+    // 创建只读用户
     CREATE USER dns_r WITH ENCRYPTED PASSWORD 'Rr123456!';
 
     // 如果 Django migrate 生成表后，没有 select 权限，请再次执行下面的几条授权语句。
@@ -250,7 +250,7 @@ docker run -d --privileged --name dns \
     docker exec -it postgresql bash
     # 在容器中执行下列命令
     psql -h 127.0.0.1 -p 5432 -U dns_wr -d dns
-    // 创建只读用
+    // 创建只读用户
     CREATE USER dns_r WITH ENCRYPTED PASSWORD 'Rr123456!';
 
     // 如果 Django migrate 生成表后，没有 select 权限，请再次执行下面的几条授权语句。
