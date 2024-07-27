@@ -282,7 +282,7 @@ def action2status(action: str) -> str:
 
 
 def split_txt(txt: str) -> str:
-    """ 超过 255 个字符的文本分割为多个字符串，使用 “ ” 连接分割的各个部分
+    """ 超过 255 个字符的文本分割为多个字符串，使用 " " 连接分割的各个部分
 
     :param txt: str
         需要进行处理的文本字符串
@@ -313,7 +313,7 @@ def split_txt(txt: str) -> str:
     if txt.find('" "') != -1:
         txt = txt.replace('" "', '')
 
-    tmp_txt = ''
+    tmp_txt = []
     i = 0
     n = 255
     while i < math.ceil(len(txt) / n):
@@ -321,7 +321,6 @@ def split_txt(txt: str) -> str:
         end = (1 + i) * n
         if end > len(txt):
             end = len(txt)
-        tmp_txt += txt[start: end] + '" "'
+        tmp_txt.append(txt[start: end])
         i += 1
-    tmp_txt = tmp_txt.rstrip('" "')
-    return tmp_txt
+    return '" "'.join(tmp_txt)
