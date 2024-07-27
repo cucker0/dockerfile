@@ -35,7 +35,7 @@ RUN set -eux; \
          -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/rh/|g" \
          -i.bak \
          /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo; \
-    yum makecache;
+    yum makecache; \
     # Install Python; \
     yum -y install zlib zlib-devel; \
     yum -y install bzip2 bzip2-devel; \
