@@ -26,6 +26,16 @@ RUN set -eux; \
     #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl; \
+    # fix url in centos-release-scl repo; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/sclo/|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-SCLo-scl.repo; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/rh/|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo; \
+    yum makecache;
     # Install Python; \
     yum -y install zlib zlib-devel; \
     yum -y install bzip2 bzip2-devel; \
