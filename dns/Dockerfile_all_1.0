@@ -80,6 +80,16 @@ RUN set -eux; \
     #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl; \
+    # fix url in centos-release-scl repo; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/sclo/|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-SCLo-scl.repo; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/rh/|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo; \
+    yum makecache; \
     # 安装PostgreSQL; \
     ## PostgreSQL 官方的 yum 库已经不提供 PostgreSQL 11 
     # PostgreSQL 11 相关包参考 https://repo.nrg.wustl.edu/postgres/11/redhat/rhel-7.6-x86_64/
@@ -155,6 +165,16 @@ RUN set -eux; \
     #rpm -ivh https://mirrors.aliyun.com/centos-vault/7.6.1810/extras/x86_64/Packages/centos-release-scl-2-2.el7.centos.noarch.rpm; \
     yum makecache; \
     yum -y install wget epel-release centos-release-scl sudo; \
+    # fix url in centos-release-scl repo; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/sclo/|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-SCLo-scl.repo; \
+    sed -e "s|^mirrorlist=|#mirrorlist=|g" \
+         -e "s|^#[ ]*baseurl=.*|baseurl=https://mirrors.tuna.tsinghua.edu.cn/centos-vault/$minorver/sclo/\$basearch/rh/|g" \
+         -i.bak \
+         /etc/yum.repos.d/CentOS-SCLo-scl-rh.repo; \
+    yum makecache; \
     # 安装PostgreSQL; \
     #yum install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm; \
     #yum install -y postgresql11-server-11.3 postgresql11-11.3 postgresql11-libs-11.3 postgresql11-devel-11.3; \
