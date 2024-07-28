@@ -47,7 +47,7 @@ RUN set -eux; \
     yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-devel-11.3-1PGDG.rhel7.x86_64.rpm; \
     yum -y install gcc automake autoconf libtool make gcc gcc-c++ wget ; \
     yum -y install python-ply perl-diagnostics epel-release diffutils; \
-    yum -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel; \
+    yum -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel --nobest --skip-broken; \
     yum -y install openssl openssl-devel; \
     yum -y install openssl11 openssl11-devel; \
     echo -e "\n\n## PATH \nexport PATH=$PATH:/usr/pgsql-11/bin" >> /etc/profile.d/env.sh; \
@@ -113,7 +113,7 @@ RUN set -eux; \
     yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-11.3-1PGDG.rhel7.x86_64.rpm; \
     yum -y install /pkg/PostgreSQL/PostgreSQL11.3/postgresql11-devel-11.3-1PGDG.rhel7.x86_64.rpm; \
     # Install BIND; \
-    yum -y install libuv procps-ng; \
+    yum -y install libuv procps-ng --nobest --skip-broken; \
     ln -s ${BIND_PATH} /usr/local/bind; \
     ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
     ln -s /usr/local/bind/bin/dig /usr/bin/; \

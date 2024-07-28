@@ -97,7 +97,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     bash ./install.sh; \
     # Install BIND; \
     dnf -y install python3-ply perl-diagnostics epel-release diffutils; \
-    dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel --nobest; \
+    dnf -y install libuv libuv-devel libnghttp2-devel libcap libcap-devel jemalloc jemalloc-devel --nobest --skip-broken; \
     dnf -y install bind-utils; \
     cd /usr/local/src/; \
     wget https://downloads.isc.org/isc/bind9/9.16.39/bind-9.16.39.tar.xz; \
