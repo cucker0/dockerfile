@@ -36,18 +36,12 @@ docker run -d --name dns \
  -p 80:80/tcp \
  -p 8000:8000/tcp \
  cucker/dns:latest
+```
 
-# or
-docker run -d --name dns \
- --restart=always \
- -p 53:53/udp \
- -p 53:53/tcp \
- -p 127.0.0.1:953:953/tcp \
- -p 80:80/tcp \
- -p 8000:8000/tcp \
- cucker/dns:all-1.0
- 
-# or
+<details>
+<summary>Or</summary>
+
+```bash
 docker run -d --name dns \
  --restart=always \
  -p 53:53/udp \
@@ -86,6 +80,7 @@ docker run -d --privileged --name dns \
  -p 8000:8000/tcp \
  cucker/dns:all-2.0
 ```
+</details>
 
 #### All in One System Information
 * BindUI Account Info
