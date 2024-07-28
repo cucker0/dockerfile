@@ -1,10 +1,12 @@
 # builder_bind
-FROM rockylinux:9.1 AS builder_bind
+FROM rockylinux:9.3 AS builder_bind
 ADD pkg/BIND/bind-9.16.39.tar.xz /usr/local/src/
 COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     dnf clean all; \
     dnf makecache; \
     # 关联动态库; \
@@ -34,7 +36,7 @@ RUN set -eux; \
     make install;
 
 # origin
-FROM rockylinux:9.1
+FROM rockylinux:9.3
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 ARG BIND_PATH=/usr/local/bind_9.16.39
@@ -47,6 +49,8 @@ COPY pkg/BIND/docker_init_info.sh ${BIND_PATH}/etc/
 COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/bind_9.16.39/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     dnf clean all; \
     dnf makecache; \
     # 关联动态库; \
@@ -64,7 +68,7 @@ RUN set -eux; \
     # 安装最新版本PostgreSQL; \
     dnf -y install postgresql15 postgresql15-libs libpq5 libpq5-devel; \
     # Install BIND; \
-    dnf -y install libuv procps-ng --nobest --skip-broken; \
+    dnf -y install libuv libuv-devel procps-ng --nobest --skip-broken; \
     ln -s /usr/local/bind_9.16.39 /usr/local/bind; \
     ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
     ln -s /usr/local/bind/bin/dig /usr/bin/; \

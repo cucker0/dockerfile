@@ -1,5 +1,5 @@
 # builder_python
-FROM rockylinux:9.1 AS builder_python
+FROM rockylinux:9.3 AS builder_python
 ARG PYTHON_PATH=/usr/local/python3.11.3
 ARG BIND_PATH=/usr/local/bind_9.16.39
 ADD pkg/python/Python-3.11.3.tar.xz /usr/local/src/
@@ -8,6 +8,8 @@ COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     dnf clean all; \
     dnf makecache; \
     # 关联动态库; \
@@ -46,12 +48,14 @@ RUN set -eux; \
 
 
 # builder_bind
-FROM rockylinux:9.1 AS builder_bind
+FROM rockylinux:9.3 AS builder_bind
 ADD pkg/BIND/bind-9.16.39.tar.xz /usr/local/src/
 COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     dnf clean all; \
     dnf makecache; \
     # 关联动态库; \
@@ -83,7 +87,7 @@ RUN set -eux; \
 
 
 # origin
-FROM rockylinux:9.1
+FROM rockylinux:9.3
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 ARG PYTHON_PATH=/usr/local/python3.11.3
@@ -111,6 +115,8 @@ COPY --from=builder_bind /usr/local/bind_9.16.39 /usr/local/bind_9.16.39/
 
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     dnf clean all; \
     dnf makecache; \
     dnf -y install systemd; \

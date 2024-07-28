@@ -1,7 +1,7 @@
 # BindUI support PostgreSQL 11 and MySQL 8+
 
 # builder_python
-FROM rockylinux:9.1 AS builder_python
+FROM rockylinux:9.3 AS builder_python
 ARG PYTHON_PATH=/usr/local/python3.11.3
 ADD pkg/python/Python-3.11.3.tar.xz /usr/local/src/
 ADD pkg/BindUI/requirements_PostgreSQL-11.txt /usr/local/src/
@@ -9,6 +9,8 @@ COPY pkg/linux/CentOS-Stream9-CRB.repo /etc/yum.repos.d/
 COPY pkg/linux/RPM-GPG-KEY-centosofficial /etc/pki/rpm-gpg/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     dnf clean all; \
     dnf makecache; \
     # 关联动态库; \
@@ -47,7 +49,7 @@ RUN set -eux; \
     ${PYTHON_PATH}/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --no-cache-dir -r /usr/local/src/requirements_PostgreSQL-11.txt;
 
 # origin
-FROM rockylinux:9.1
+FROM rockylinux:9.3
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 ADD pkg/BindUI/requirements.txt /usr/local/src/
@@ -57,6 +59,8 @@ COPY pkg/BindUI/docker_init_info.sh /etc/BindUI/
 COPY --from=builder_python /usr/local/python3.11.3 /usr/local/python3.11.3/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     # Install Python; \
     echo "/usr/local/python3.11.3/lib/" >> /etc/ld.so.conf; \
     ldconfig; \

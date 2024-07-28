@@ -1,4 +1,4 @@
-FROM rockylinux:9.1
+FROM rockylinux:9.3
 LABEL maintainer='Image Maintainers <hanxiao2100@qq.com>'
 
 ENV DJANGO_SUPERUSER_NAME=admin
@@ -23,6 +23,8 @@ COPY pkg/linux/bindui.service /etc/systemd/system/
 #COPY pkg/BIND/bind-9.16.39.tar.xz /usr/local/src/
 
 RUN set -eux; \
+    dnf -y install epel-release epel-next-release --skip-broke; \
+    dnf config-manager --set-enabled crb; \
     yum clean all; \
     yum makecache; \
     dnf -y install systemd; \

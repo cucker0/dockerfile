@@ -247,7 +247,7 @@ export PATH=$PATH:$JAVA_HOME/bin\n\
     rm -rf ./application.yml; \
     mv ./application_pg.yml ./application.yml; \
     # Install BIND; \
-    yum -y install libuv; \
+    yum -y install libuv libuv-devel; \
     ln -s /usr/local/bind_9.12.4 /usr/local/bind; \
     ln -s /usr/local/bind/etc /etc/named; \
     ln -s /usr/local/bind/bin/nslookup /usr/bin/; \
