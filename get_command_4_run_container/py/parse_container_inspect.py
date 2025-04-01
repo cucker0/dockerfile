@@ -162,7 +162,7 @@ class MYDOCKER(object):
         self.container = container
         self.inspect:dict = {}
         self.docker_run_cmd = ""
-        self.options = {"kv": [], "k": []}
+        self.options = {"kv": [], "k": []}  # 例如：{"kv": [{"--name", "mytomcat"}, {"-v": "/var/run/docker.sock:/var/run/docker.sock"}], "k": [dit]}
         self.image = None  # str
         self.args = []
         self.inspect_image:dict = {}
